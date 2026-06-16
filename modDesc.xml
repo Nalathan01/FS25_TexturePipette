@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="109">
+    <author>Nalathan</author>
+    <version>1.2.0.0</version>
+
+    <title>
+        <en>Texture Pipette</en>
+        <de>Textur-Pipette</de>
+        <jp>テクスチャピペット</jp>
+        <pl>Pipeta Tekstur</pl>
+        <cz>Texturová Pipeta</cz>
+        <fr>Pipette De Texture</fr>
+        <es>Pipeta De Texturas</es>
+        <ru>Пипетка Текстур</ru>
+        <it>Pipetta Texture</it>
+        <pt>Pipeta De Texturas</pt>
+        <hu>Textúra-pipetta</hu>
+        <nl>Textuurpipet</nl>
+        <cs>纹理吸管</cs>
+        <ct>紋理吸管</ct>
+        <br>Pipeta De Texturas</br>
+        <tr>Doku Pipeti</tr>
+        <ro>Pipetă Pentru Texturi</ro>
+        <kr>텍스처 스포이드</kr>
+        <da>Teksturpipette</da>
+        <fi>Tekstuuripipetti</fi>
+        <no>Teksturpipette</no>
+        <sv>Texturpipett</sv>
+        <fc>Pipette De Texture</fc>
+        <uk>Піпетка Текстур</uk>
+        <vi>Ống Hút Kết Cấu</vi>
+        <id>Pipet Tekstur</id>
+    </title>
+
+    <description>
+        <de><![CDATA[
+Die Textur-Pipette erweitert das Baumenü um eine Pipetten-Funktion für Bodentexturen, platzierbare Objekte und geeignete Karten-Foliage.
+
+Mit ihr lassen sich bereits verwendete Maltexturen, sichtbare Foliage wie Gräser, Blumen und Büsche sowie unterstützte platzierbare Objekte direkt auf der Karte aufnehmen und im Baumenü schneller wiederfinden. Die Mod priorisiert passende Treffer und zeigt bei gemischten Bereichen mehrere mögliche Kandidaten an.
+
+Anwendung:
+1. Im Baumenü den Reiter „Pipette“ öffnen.
+2. Den Button „Pipette aktivieren“ betätigen.
+3. Auf eine Bodentextur, Foliage oder ein unterstütztes platzierbares Objekt klicken.
+4. Den gewünschten Treffer im Baumenü bestätigen.
+5. Wie gewohnt malen oder bauen.
+
+Die Pipette kann bei Bedarf jederzeit erneut aktiviert werden. Dabei wird der aktive Pinsel vor dem Aufnehmen zurückgesetzt.
+
+Die Mod berücksichtigt außerdem verfügbare Bodentexturen und geeignete Foliage der jeweiligen Karte. Karten-Foliage wird, sofern möglich, als malbarer Baumenü-Eintrag verfügbar gemacht.
+
+Der Debug-Modus ist optional und standardmäßig deaktiviert. Er dient nur zur Fehlersuche.
+
+Credits:
+Dank an PeterPwn247 für „All Decorative Foliage“ und an modelleicher (Farming Agency) für „All The Ground Textures Ingame“. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
+
+Changelog 1.2.0.0:
+- Erkennung von Foliage wie Gräsern, Blumen und Büschen ergänzt.
+- Karten-Foliage wird, sofern möglich, als malbare Baumenü-Einträge verfügbar gemacht.
+- Gemeinsame Trefferliste für Foliage und Bodentexturen ergänzt.
+- Debug-Modus als optionale Fehlersuche ergänzt.
+
+Changelog 1.1.0.0:
+- Erkennung geeigneter platzierbarer Objekte hinzugefügt.
+- Bedienung der Pipette verbessert: erneutes Aktivieren löscht die vorherige Auswahl.
+- Allgemeine Einstellungen zum Aktivieren der Pipette und für kostenfreies Malen hinzugefügt.
+]]></de>
+        <en><![CDATA[
+Texture Pipette adds a pipette function for ground textures, placeable objects and suitable map foliage to the construction menu.
+
+It allows previously used paint textures, visible foliage such as grass, flowers and bushes, and supported placeable objects to be picked directly from the map and found again more quickly in the construction menu. The mod prioritizes suitable results and can show several possible candidates in mixed areas.
+
+How to use:
+1. Open the “Pipette” tab in the construction menu.
+2. Press the “Activate pipette” button.
+3. Click a ground texture, foliage or supported placeable object.
+4. Confirm the desired result in the construction menu.
+5. Paint or build as usual.
+
+If needed, the pipette can be activated again at any time. The active brush is reset before picking.
+
+The mod also considers available ground textures and suitable foliage of the current map. Map foliage is added as paintable construction-menu entries where possible.
+
+Debug mode is optional and disabled by default. It is only intended for troubleshooting.
+
+Credits:
+Thanks to PeterPwn247 for “All Decorative Foliage” and to modelleicher (Farming Agency) for “All The Ground Textures Ingame”. Both mods helped with understanding how map content can be made available in the construction menu.
+
+Changelog 1.2.0.0:
+- Added detection support for foliage such as grass, flowers and bushes.
+- Map foliage is added as paintable construction-menu entries where possible.
+- Added a combined result list for foliage and ground textures.
+- Added debug mode as optional troubleshooting aid.
+
+Changelog 1.1.0.0:
+- Added detection support for suitable placeable objects.
+- Improved pipette handling: activating the pipette again clears the previous selection.
+- Added general settings for enabling the pipette function and free painting.
+]]></en>
+        <fr><![CDATA[
+La Pipette de texture ajoute au menu de construction une fonction de pipette pour les textures de sol, les objets plaçables et la végétation de carte compatible.
+
+Elle permet de prélever directement sur la carte des textures de peinture déjà utilisées, de la végétation visible comme l’herbe, les fleurs et les buissons, ainsi que des objets plaçables compatibles, puis de les retrouver plus rapidement dans le menu de construction. Le mod priorise les résultats adaptés et peut afficher plusieurs candidats possibles dans les zones mixtes.
+
+Utilisation :
+1. Ouvrir l’onglet « Pipette » dans le menu de construction.
+2. Appuyer sur le bouton « Activer la pipette ».
+3. Cliquer sur une texture de sol, de la végétation ou un objet plaçable compatible.
+4. Confirmer le résultat souhaité dans le menu de construction.
+5. Peindre ou construire comme d’habitude.
+
+Si nécessaire, la pipette peut être réactivée à tout moment. Le pinceau actif est réinitialisé avant le prélèvement.
+
+Le mod tient également compte des textures de sol et de la végétation compatible de la carte actuelle. La végétation de carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+
+Le mode débogage est optionnel et désactivé par défaut. Il sert uniquement au dépannage.
+
+Credits :
+Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à mieux comprendre comment rendre le contenu de carte disponible dans le menu de construction.
+
+Changelog 1.2.0.0 :
+- Ajout de la détection de végétation comme l’herbe, les fleurs et les buissons.
+- La végétation de la carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+- Ajout d’une liste de résultats commune pour la végétation et les textures de sol.
+- Ajout du mode débogage comme aide optionnelle au dépannage.
+
+Changelog 1.1.0.0 :
+- Ajout de la détection des objets plaçables compatibles.
+- Amélioration de l’utilisation de la pipette : une nouvelle activation efface la sélection précédente.
+- Ajout de paramètres généraux pour activer la fonction pipette et la peinture gratuite.
+]]></fr>
+        <fc><![CDATA[
+La Pipette de texture ajoute au menu de construction une fonction de pipette pour les textures de sol, les objets plaçables et la végétation de carte compatible.
+
+Elle permet de prélever directement sur la carte des textures de peinture déjà utilisées, de la végétation visible comme l’herbe, les fleurs et les buissons, ainsi que des objets plaçables compatibles, puis de les retrouver plus rapidement dans le menu de construction. Le mod priorise les résultats adaptés et peut afficher plusieurs candidats possibles dans les zones mixtes.
+
+Utilisation :
+1. Ouvrir l’onglet « Pipette » dans le menu de construction.
+2. Appuyer sur le bouton « Activer la pipette ».
+3. Cliquer sur une texture de sol, de la végétation ou un objet plaçable compatible.
+4. Confirmer le résultat souhaité dans le menu de construction.
+5. Peindre ou construire comme d’habitude.
+
+Si nécessaire, la pipette peut être réactivée à tout moment. Le pinceau actif est réinitialisé avant le prélèvement.
+
+Le mod tient également compte des textures de sol et de la végétation compatible de la carte actuelle. La végétation de carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+
+Le mode débogage est optionnel et désactivé par défaut. Il sert uniquement au dépannage.
+
+Credits :
+Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à mieux comprendre comment rendre le contenu de carte disponible dans le menu de construction.
+
+Changelog 1.2.0.0 :
+- Ajout de la détection de végétation comme l’herbe, les fleurs et les buissons.
+- La végétation de la carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+- Ajout d’une liste de résultats commune pour la végétation et les textures de sol.
+- Ajout du mode débogage comme aide optionnelle au dépannage.
+
+Changelog 1.1.0.0 :
+- Ajout de la détection des objets plaçables compatibles.
+- Amélioration de l’utilisation de la pipette : une nouvelle activation efface la sélection précédente.
+- Ajout de paramètres généraux pour activer la fonction pipette et la peinture gratuite.
+]]></fc>
+    </description>
+    <changelog>
+        <en><![CDATA[
+Version 1.2.0.0:
+- Added detection support for foliage such as grass, flowers and bushes.
+- Map foliage is added as paintable construction-menu entries where possible.
+- Added a combined result list for foliage and ground textures.
+- Added debug mode as optional troubleshooting aid.
+
+Version 1.1.0.0:
+- Added detection support for suitable placeable objects.
+- Improved pipette handling: activating the pipette again clears the previous selection.
+- Added general settings for enabling the pipette function and free painting.
+]]></en>
+        <de><![CDATA[
+Version 1.2.0.0:
+- Erkennung von Foliage wie Gräsern, Blumen und Büschen ergänzt.
+- Karten-Foliage wird, sofern möglich, als malbare Baumenü-Einträge verfügbar gemacht.
+- Gemeinsame Trefferliste für Foliage und Bodentexturen ergänzt.
+- Debug-Modus als optionale Fehlersuche ergänzt.
+
+Version 1.1.0.0:
+- Erkennung geeigneter platzierbarer Objekte hinzugefügt.
+- Bedienung der Pipette verbessert: erneutes Aktivieren löscht die vorherige Auswahl.
+- Allgemeine Einstellungen zum Aktivieren der Pipette und für kostenfreies Malen hinzugefügt.
+]]></de>
+        <fr><![CDATA[
+Version 1.2.0.0 :
+- Ajout de la détection de végétation comme l’herbe, les fleurs et les buissons.
+- La végétation de la carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+- Ajout d’une liste de résultats commune pour la végétation et les textures de sol.
+- Ajout du mode débogage comme aide optionnelle au dépannage.
+
+Version 1.1.0.0 :
+- Ajout de la détection des objets plaçables compatibles.
+- Amélioration de l’utilisation de la pipette : une nouvelle activation efface la sélection précédente.
+- Ajout de paramètres généraux pour activer la fonction pipette et la peinture gratuite.
+]]></fr>
+        <fc><![CDATA[
+Version 1.2.0.0 :
+- Ajout de la détection de végétation comme l’herbe, les fleurs et les buissons.
+- La végétation de la carte est ajoutée comme entrée peignable du menu de construction lorsque cela est possible.
+- Ajout d’une liste de résultats commune pour la végétation et les textures de sol.
+- Ajout du mode débogage comme aide optionnelle au dépannage.
+
+Version 1.1.0.0 :
+- Ajout de la détection des objets plaçables compatibles.
+- Amélioration de l’utilisation de la pipette : une nouvelle activation efface la sélection précédente.
+- Ajout de paramètres généraux pour activer la fonction pipette et la peinture gratuite.
+]]></fc>
+    </changelog>
+
+    <iconFilename>icon_TexturePipette.dds</iconFilename>
+
+    <multiplayer supported="true"/>
+    <l10n>
+        <text name="TP_msg_noPosition">
+            <en>No target found.</en>
+            <de>Kein Ziel gefunden.</de>
+            <fr>Aucune cible trouvée.</fr>
+            <fc>Aucune cible trouvée.</fc>
+        </text>
+        <text name="TP_msg_armed">
+            <en>Pipette ready. Click target.</en>
+            <de>Pipette bereit. Ziel anklicken.</de>
+            <fr>Pipette prête. Cliquez sur la cible.</fr>
+            <fc>Pipette prête. Cliquez sur la cible.</fc>
+        </text>
+        <text name="TP_msg_cancelled">
+            <en>Pipette off.</en>
+            <de>Pipette aus.</de>
+            <fr>Pipette désactivée.</fr>
+            <fc>Pipette désactivée.</fc>
+        </text>
+        <text name="TP_msg_objectDetected">
+            <en>Selected: %s</en>
+            <de>Ausgewählt: %s</de>
+            <fr>Sélectionné : %s</fr>
+            <fc>Sélectionné : %s</fc>
+        </text>
+        <text name="TP_msg_objectNotReady">
+            <en>Not buildable: %s</en>
+            <de>Nicht baubar: %s</de>
+            <fr>Non constructible : %s</fr>
+            <fc>Non constructible : %s</fc>
+        </text>
+        <text name="TP_msg_mapFoliage">
+            <en>Map foliage found: %s</en>
+            <de>Karten-Foliage: %s</de>
+            <fr>Végétation de la carte : %s</fr>
+            <fc>Végétation de la carte : %s</fc>
+        </text>
+        <text name="TP_msg_notInBuildMenu">
+            <en>No selectable construction item found for: %s</en>
+            <de>Kein auswählbarer Baumenü-Eintrag gefunden für: %s</de>
+            <fr>Aucun élément de construction sélectionnable trouvé pour : %s</fr>
+            <fc>Aucun élément de construction sélectionnable trouvé pour : %s</fc>
+        </text>
+        <text name="TP_msg_noBuildMenuEntryHere">
+            <en>No selectable construction menu entry found at this position.</en>
+            <de>An dieser Stelle wurde kein auswählbarer Baumenü-Eintrag gefunden.</de>
+            <fr>Aucun élément de construction sélectionnable trouvé à cet endroit.</fr>
+            <fc>Aucun élément de construction sélectionnable trouvé à cet endroit.</fc>
+        </text>
+        <text name="TP_msg_staticNotInBuildMenu">
+            <en>No construction menu entry at this position. Static map object: %s</en>
+            <de>An dieser Stelle gibt es keinen Baumenü-Eintrag. Festes Kartenobjekt: %s</de>
+            <fr>Aucun élément du menu de construction à cet endroit. Objet fixe de la carte : %s</fr>
+            <fc>Aucun élément du menu de construction à cet endroit. Objet fixe de la carte : %s</fc>
+        </text>
+        <text name="TP_label_mapObject">
+            <en>map object</en>
+            <de>Kartenobjekt</de>
+            <fr>objet de la carte</fr>
+            <fc>objet de la carte</fc>
+        </text>
+        <text name="TP_category_pipette">
+            <en>Pipette</en>
+            <de>Pipette</de>
+            <fr>Pipette</fr>
+            <fc>Pipette</fc>
+        </text>
+        <text name="TP_tab_pipette">
+            <en>Pipette</en>
+            <de>Pipette</de>
+            <fr>Pipette</fr>
+            <fc>Pipette</fc>
+        </text>
+        <text name="TP_tab_results">
+            <en>Detected Textures</en>
+            <de>Gefundene Texturen</de>
+            <fr>Éléments détectés</fr>
+            <fc>Éléments détectés</fc>
+        </text>
+        <text name="TP_button_activate">
+            <en>Activate pipette</en>
+            <de>Pipette aktivieren</de>
+            <fr>Activer la pipette</fr>
+            <fc>Activer la pipette</fc>
+        </text>
+        <text name="TP_button_active">
+            <en>Pipette active</en>
+            <de>Pipette aktiv</de>
+            <fr>Pipette active</fr>
+            <fc>Pipette active</fc>
+        </text>
+        <text name="TP_settings_title">
+            <en>Texture Pipette</en>
+            <de>Textur-Pipette</de>
+            <fr>Pipette de texture</fr>
+            <fc>Pipette de texture</fc>
+        </text>
+        <text name="TP_pipetteEnabled_short">
+            <en>Enable pipette</en>
+            <de>Pipette aktivieren</de>
+            <fr>Activer la pipette</fr>
+            <fc>Activer la pipette</fc>
+        </text>
+        <text name="TP_pipetteEnabled_long">
+            <en>Enables the pipette function in the construction menu.</en>
+            <de>Aktiviert die Pipetten-Funktion im Baumenü.</de>
+            <fr>Active la fonction pipette dans le menu de construction.</fr>
+            <fc>Active la fonction pipette dans le menu de construction.</fc>
+        </text>
+        <text name="TP_freePaintEnabled_short">
+            <en>Free painting</en>
+            <de>Kostenfreies Malen</de>
+            <fr>Peinture gratuite</fr>
+            <fc>Peinture gratuite</fc>
+        </text>
+        <text name="TP_freePaintEnabled_long">
+            <en>Allows painting without construction costs while this option is enabled.</en>
+            <de>Ermöglicht Malen ohne Baukosten, solange diese Option aktiv ist.</de>
+            <fr>Permet de peindre sans frais de construction lorsque cette option est activée.</fr>
+            <fc>Permet de peindre sans frais de construction lorsque cette option est activée.</fc>
+        </text>
+        <text name="TP_debugModeEnabled_short">
+            <en>Debug mode</en>
+            <de>Debug-Modus</de>
+            <fr>Mode débogage</fr>
+            <fc>Mode débogage</fc>
+        </text>
+        <text name="TP_debugModeEnabled_long">
+            <en>Shows a compact ground grid and technical values for troubleshooting.</en>
+            <de>Zeigt ein kompaktes Raster und technische Werte zur Fehlersuche an.</de>
+            <fr>Affiche une grille compacte au sol et des valeurs techniques pour le dépannage.</fr>
+            <fc>Affiche une grille compacte au sol et des valeurs techniques pour le dépannage.</fc>
+        </text>
+        <text name="TP_msg_mapFoliageSelected">
+            <en>Map foliage selected.</en>
+            <de>Karten-Foliage gewählt.</de>
+            <fr>Végétation de carte sélectionnée.</fr>
+            <fc>Végétation de carte sélectionnée.</fc>
+        </text>
+        <text name="TP_msg_mapFoliageBrushAccepted">
+            <en>Map foliage selected. Brush accepted.</en>
+            <de>Karten-Foliage gewählt. Brush übernommen.</de>
+            <fr>Végétation de carte sélectionnée. Pinceau accepté.</fr>
+            <fc>Végétation de carte sélectionnée. Pinceau accepté.</fc>
+        </text>
+    </l10n>
+<extraSourceFiles>
+        <sourceFile filename="scripts/TexturePipetteMenu.lua" />
+        <sourceFile filename="scripts/lib/TexturePipetteUIHelper.lua" />
+        <sourceFile filename="scripts/TexturePipetteMapFoliageStore.lua" />
+        <sourceFile filename="scripts/TexturePipette.lua" />
+        <sourceFile filename="scripts/TexturePipetteGroundTextures.lua" />
+    </extraSourceFiles>
+</modDesc>
