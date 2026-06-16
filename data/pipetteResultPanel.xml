@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<GUI>
+  <GuiElement profile="tpPipettePanelContainer">
+    <Button profile="tpPipetteActivateButton" id="tpPipetteActivateButton" onClick="onPtpPipetteActivateButtonClick">
+      <ThreePartBitmap profile="tpPipetteActivateButtonBackground" name="background"/>
+      <Text profile="tpPipetteActivateText" id="tpPipetteActivateText" text="$l10n_TP_button_activate"/>
+    </Button>
+    <Text profile="tpPipetteCandidateText" id="tpPipetteStatusText" text=""/>
+  </GuiElement>
+
+  <GUIProfiles>
+    <Profile name="tpPipettePanelContainer" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+      <absoluteSizeOffset value="0px 0px"/>
+    </Profile>
+
+    <Profile name="tpPipetteActivateButton" extends="emptyPanel" with="anchorTopCenter">
+      <size value="270px 34px"/>
+      <position value="0px -48px"/>
+      <handleFocus value="false"/>
+      <ignorePressedOverlayState value="true"/>
+    </Profile>
+
+    <Profile name="tpPipetteActivateButtonBackground" extends="emptyPanel">
+      <handleFocus value="false"/>
+      <imageSliceId value="gui.button_middle"/>
+      <imageColor value="$preset_fs25_colorMainDark_40"/>
+      <imageHighlightedColor value="$preset_fs25_colorMainDark_40"/>
+      <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+      <startImageSize value="6px 0px"/>
+      <startImageSliceId value="gui.button_left"/>
+      <startImageColor value="$preset_fs25_colorMainDark_40"/>
+      <startImageHighlightedColor value="$preset_fs25_colorMainDark_40"/>
+      <startImageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+      <endImageSize value="6px 0px"/>
+      <endImageSliceId value="gui.button_right"/>
+      <endImageColor value="$preset_fs25_colorMainDark_40"/>
+      <endImageHighlightedColor value="$preset_fs25_colorMainDark_40"/>
+      <endImageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+    </Profile>
+
+    <Profile name="tpPipetteActivateText" extends="fs25_textDefault" with="anchorMiddleCenter">
+      <textSize value="16px"/>
+      <textMaxNumLines value="1"/>
+      <textAutoWidth value="true"/>
+      <textBold value="true"/>
+      <textAlignment value="center"/>
+      <textUpperCase value="true"/>
+      <textColor value="$preset_fs25_colorMainLight"/>
+      <textSelectedColor value="$preset_fs25_colorMainDark"/>
+      <textHighlightedColor value="$preset_fs25_colorMainLight"/>
+    </Profile>
+
+    <Profile name="tpPipetteCandidateText" extends="fs25_textDefault" with="anchorTopCenter">
+      <size value="330px 62px"/>
+      <position value="0px -92px"/>
+      <textSize value="13px"/>
+      <textMaxNumLines value="2"/>
+      <textAutoWidth value="false"/>
+      <textBold value="false"/>
+      <textAlignment value="center"/>
+      <textVerticalAlignment value="top"/>
+      <textColor value="$preset_fs25_colorMainLight"/>
+    </Profile>
+  </GUIProfiles>
+</GUI>
