@@ -2,6 +2,7 @@ MapObjectFinderMenu = {}
 MapObjectFinderMenu.modDirectory = g_currentModDirectory or ""
 MapObjectFinderMenu.pipetteCategoryName = "TP_PIPETTE_MENU"
 MapObjectFinderMenu.pipetteTabName = "TP_PIPETTE_TAB"
+MapObjectFinderMenu.searchTabName = "TP_SEARCH_TAB"
 MapObjectFinderMenu.settings = {
     pipetteEnabled = true,
     freePaintEnabled = true,
@@ -97,10 +98,6 @@ function MapObjectFinderMenu:setEnabled(key, value)
     self:refreshConstructionScreen()
 end
 
-function MapObjectFinderMenu:toggle(key)
-    self:setEnabled(key, not self:isEnabled(key))
-end
-
 function MapObjectFinderMenu:getConstructionIconUVs()
     if GuiUtils ~= nil and GuiUtils.getUVs ~= nil then
         return GuiUtils.getUVs("0 0 1 1", {1, 1})
@@ -151,6 +148,22 @@ function MapObjectFinderMenu:registerConstructionMenu()
                 nil
             )
         end
+
+        local searchTab = nil
+        if g_storeManager.getConstructionTabByName ~= nil then
+            searchTab = g_storeManager:getConstructionTabByName(self.searchTabName, self.pipetteCategoryName)
+        end
+        if searchTab == nil then
+            g_storeManager:addConstructionTab(
+                self.pipetteCategoryName,
+                self.searchTabName,
+                tpMenuText("TP_tab_search", "Search"),
+                nil,
+                nil,
+                self.modDirectory,
+                nil
+            )
+        end
     end
 
 
@@ -164,7 +177,7 @@ function MapObjectFinderMenu:getTabIndex(screen, tabName)
     end
 
     local targetCategoryName = nil
-    if tostring(tabName) == tostring(self.pipetteTabName) then
+    if tostring(tabName) == tostring(self.pipetteTabName) or tostring(tabName) == tostring(self.searchTabName) then
         targetCategoryName = self.pipetteCategoryName
     end
 
@@ -310,3 +323,13 @@ function MapObjectFinderMenu:deleteMap()
 end
 
 addModEventListener(MapObjectFinderMenu)
+
+-- ============================================================
+-- LEGACY / UNGENUTZT
+-- Wird aktuell nirgends aufgerufen. Hierher verschoben statt
+-- gelöscht, um den aktiven Code oben übersichtlich zu halten.
+-- ============================================================
+
+function MapObjectFinderMenu:toggle(key)
+    self:setEnabled(key, not self:isEnabled(key))
+end

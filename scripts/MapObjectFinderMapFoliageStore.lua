@@ -18,15 +18,6 @@ local function tpMfSafeFilename(value)
     return value
 end
 
-local function tpMfTitleCase(value)
-    value = tostring(value or "")
-    value = value:gsub("[_%-%s]+", " ")
-    value = value:gsub("(%a)([%w_']*)", function(a, b)
-        return string.upper(a) .. string.lower(b or "")
-    end)
-    return value
-end
-
 local function tpMfGetSettingsDirectory(missionInfo)
     local mapId = "unknownMap"
     if missionInfo ~= nil and missionInfo.mapId ~= nil then
@@ -437,4 +428,20 @@ if FoliageSystem ~= nil and FoliageSystem.loadMapData ~= nil then
             tpMfLog("mapFoliageMenuError " .. tostring(err))
         end
     end)
+end
+
+-- ============================================================
+-- LEGACY / UNGENUTZT
+-- Diese Funktion wird aktuell nirgends aufgerufen. Sie wurde
+-- hierher verschoben (nicht gelöscht), um den aktiven Code oben
+-- übersichtlich zu halten. Bei Bedarf einfach wieder verwenden.
+-- ============================================================
+
+local function tpMfTitleCase(value)
+    value = tostring(value or "")
+    value = value:gsub("[_%-%s]+", " ")
+    value = value:gsub("(%a)([%w_']*)", function(a, b)
+        return string.upper(a) .. string.lower(b or "")
+    end)
+    return value
 end

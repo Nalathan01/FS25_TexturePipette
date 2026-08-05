@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <GUI>
-  <GuiElement profile="tpPipettePanelContainer">
+  <GuiElement profile="tpPipettePanelContainer" id="tpPipettePanelContainer">
     <Button profile="tpPipetteActivateButton" id="tpPipetteActivateButton" onClick="onPtpPipetteActivateButtonClick">
       <ThreePartBitmap profile="tpPipetteActivateButtonBackground" name="background"/>
       <Text profile="tpPipetteActivateText" id="tpPipetteActivateText" text="$l10n_TP_button_activate"/>
     </Button>
     <Text profile="tpPipetteCandidateText" id="tpPipetteStatusText" text=""/>
+  </GuiElement>
+
+  <GuiElement profile="tpSearchPanelContainer" id="tpSearchPanelContainer">
+    <TextInput profile="tpSearchTextInput" id="tpSearchTextInput" onTextChanged="onTpSearchTextChanged" enterWhenClickOutside="false" imeTitle="" imeDescription="" imePlaceholder="">
+      <ThreePartBitmap profile="tpSearchTextInputBg"/>
+      <Text profile="tpSearchPlaceholderText" id="tpSearchPlaceholderText" text="$l10n_TP_search_placeholder"/>
+    </TextInput>
   </GuiElement>
 
   <GUIProfiles>
@@ -15,7 +22,7 @@
 
     <Profile name="tpPipetteActivateButton" extends="emptyPanel" with="anchorTopCenter">
       <size value="270px 34px"/>
-      <position value="0px -48px"/>
+      <position value="0px -64px"/>
       <handleFocus value="false"/>
       <ignorePressedOverlayState value="true"/>
     </Profile>
@@ -52,7 +59,7 @@
 
     <Profile name="tpPipetteCandidateText" extends="fs25_textDefault" with="anchorTopCenter">
       <size value="330px 62px"/>
-      <position value="0px -92px"/>
+      <position value="0px -108px"/>
       <textSize value="13px"/>
       <textMaxNumLines value="2"/>
       <textAutoWidth value="false"/>
@@ -60,6 +67,30 @@
       <textAlignment value="center"/>
       <textVerticalAlignment value="top"/>
       <textColor value="$preset_fs25_colorMainLight"/>
+    </Profile>
+
+    <Profile name="tpSearchPanelContainer" extends="emptyPanel" with="anchorTopCenter">
+      <size value="330px 40px"/>
+      <position value="0px -48px"/>
+    </Profile>
+
+    <Profile name="tpSearchTextInputBg" extends="fs25_textInputBg"/>
+
+    <Profile name="tpSearchTextInput" extends="fs25_textInput" with="anchorTopCenter">
+      <size value="100% 40px"/>
+      <position value="0px -64px"/>
+      <textBold value="true"/>
+      <maxCharacters value="30"/>
+      <textUpperCase value="true"/>
+    </Profile>
+
+    <Profile name="tpSearchPlaceholderText" extends="fs25_textDefault" with="anchorMiddleCenter">
+      <textSize value="14px"/>
+      <textMaxNumLines value="1"/>
+      <textAutoWidth value="true"/>
+      <textColor value="0.6 0.6 0.6 0.6"/>
+      <textAlignment value="center"/>
+      <textUpperCase value="true"/>
     </Profile>
   </GUIProfiles>
 </GUI>

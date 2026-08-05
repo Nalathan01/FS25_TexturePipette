@@ -33,38 +33,7 @@ local TP_TREE_SCAN_RADIUS = 1.40
 
 
 local tpIsDebugModeEnabled
-
-local TP_DEBUG_SUMMARY_PREFIXES = {
-    "treePick descs=",
-    "treePick placeableProbe",
-    "treePick placeableMatchAccepted",
-    "treePick noSafePlaceableMatch",
-    "treePick collectError=",
-    "pipetteMixedResults",
-    "foliageResultCandidates=",
-    "foliageResultCandidate index=",
-    "groundResultDisplaySuppressed=",
-    "rankSummary",
-    "treeDiag scanError=",
-    "treeDiag scan center=",
-    "treeDiag hit index=",
-    "treeDiag moreHits=",
-    "treeDiag descError",
-    "treeDiag skipped",
-    "treeDiagError=",
-    "staticMapObjectHitSuppressed",
-    "staticMapObjectHierarchy",
-}
-
-local function tpShouldPrintDebugSummary(message)
-    for _, prefix in ipairs(TP_DEBUG_SUMMARY_PREFIXES) do
-        if string.sub(message, 1, string.len(prefix)) == prefix then
-            return true
-        end
-    end
-
-    return false
-end
+local tpExtractTreeNameFromHierarchy
 
 local function tpLog(message)
 end
@@ -72,6 +41,11 @@ end
 tpIsDebugModeEnabled = function()
     return false
 end
+
+-- Für Module in separaten Dateien zugänglich machen (Lua-locals sind
+-- sonst nur innerhalb dieser Datei sichtbar).
+MapObjectFinder.tpLog = tpLog
+MapObjectFinder.tpIsDebugModeEnabled = tpIsDebugModeEnabled
 
 
 local function tpText(key, fallback)
@@ -362,6 +336,8 @@ local function tpPipetteAppendRebuildData(self)
     if MapObjectFinder ~= nil then
         MapObjectFinder:tpRegisterConstructionCategory()
         MapObjectFinder:tpEnsurePipetteResultItemSlot(self)
+        MapObjectFinder:tpEnsureSearchResultItemSlot(self)
+        MapObjectFinder:tpInvalidateSearchIndex(self)
     end
 end
 
@@ -403,6 +379,64 @@ function MapObjectFinder:tpIsPipetteResultTabActive(screen)
         and screen ~= nil
         and tonumber(screen.currentCategory) == tonumber(categoryIndex)
         and tonumber(screen.currentTab) == tonumber(tabIndex)
+end
+
+function MapObjectFinder:tpFindSearchScreenIndices(screen)
+    if screen == nil or type(screen.categories) ~= "table" then
+        return nil, nil
+    end
+
+    for categoryIndex, category in ipairs(screen.categories) do
+        if type(category) == "table" then
+            local categoryName = tostring(category.name or "")
+            if categoryName == "TP_PIPETTE_MENU" then
+                local tabs = category.tabs
+                if type(tabs) == "table" then
+                    for tabIndex, tab in ipairs(tabs) do
+                        if type(tab) == "table" and tostring(tab.name or "") == "TP_SEARCH_TAB" then
+                            return categoryIndex, tabIndex
+                        end
+                    end
+                end
+
+                return nil, nil
+            end
+        end
+    end
+
+    return nil, nil
+end
+
+function MapObjectFinder:tpIsSearchResultTabActive(screen)
+    local categoryIndex, tabIndex = self:tpFindSearchScreenIndices(screen)
+    return categoryIndex ~= nil
+        and tabIndex ~= nil
+        and screen ~= nil
+        and tonumber(screen.currentCategory) == tonumber(categoryIndex)
+        and tonumber(screen.currentTab) == tonumber(tabIndex)
+end
+
+function MapObjectFinder:tpEnsureSearchResultItemSlot(screen)
+    if screen == nil
+        or type(screen.categories) ~= "table"
+        or type(screen.items) ~= "table" then
+        return false
+    end
+
+    local categoryIndex, tabIndex = self:tpFindSearchScreenIndices(screen)
+    if categoryIndex == nil or tabIndex == nil then
+        return false
+    end
+
+    if type(screen.items[categoryIndex]) ~= "table" then
+        screen.items[categoryIndex] = {}
+    end
+
+    if screen.items[categoryIndex][tabIndex] == nil then
+        screen.items[categoryIndex][tabIndex] = {}
+    end
+
+    return true
 end
 
 function MapObjectFinder:tpGetPipetteUiState(screen)
@@ -452,16 +486,6 @@ function MapObjectFinder:tpUpdatePipettePanelVisuals(screen)
     end
 end
 
-function MapObjectFinder:tpSetPipettePanelStatus(text)
-    self.tpPipettePanelStatusText = tostring(text or "")
-    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
-end
-
-function MapObjectFinder:tpClearPipettePanelStatus()
-    self.tpPipettePanelStatusText = ""
-    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
-end
-
 function MapObjectFinder:tpCreatePipettePanel(screen)
     local state = self:tpGetPipetteUiState(screen)
     if state == nil then
@@ -507,11 +531,15 @@ function MapObjectFinder:tpCreatePipettePanel(screen)
         return false
     end
 
-    local container = parentElement.elements[after]
+    local container = parentElement:getDescendantById("tpPipettePanelContainer") or parentElement.elements[after]
     local button = container:getDescendantById("tpPipetteActivateButton")
     local buttonText = container:getDescendantById("tpPipetteActivateText")
     local candidateText = container:getDescendantById("tpPipetteStatusText") or container:getDescendantById("tpPipetteCandidateText")
     local statusText = candidateText
+
+    local searchContainer = parentElement:getDescendantById("tpSearchPanelContainer")
+    local searchInput = parentElement:getDescendantById("tpSearchTextInput")
+    local searchPlaceholder = parentElement:getDescendantById("tpSearchPlaceholderText")
 
     local subPos = screen.subCategorySelector.position
     local subSize = screen.subCategorySelector.size
@@ -525,11 +553,25 @@ function MapObjectFinder:tpCreatePipettePanel(screen)
         button.target = screen
     end
 
+    if searchContainer ~= nil then
+        searchContainer:setPosition(subPos[1], subPos[2])
+        searchContainer:setSize(subSize[1], 0.075)
+        searchContainer:setVisible(false)
+        searchContainer:updateAbsolutePosition()
+    end
+
+    if searchInput ~= nil then
+        searchInput.target = screen
+    end
+
     state.container = container
     state.button = button
     state.buttonText = buttonText
     state.candidateText = candidateText
     state.statusText = statusText
+    state.searchContainer = searchContainer
+    state.searchInput = searchInput
+    state.searchPlaceholder = searchPlaceholder
     state.created = true
 
     self:tpUpdatePipettePanelVisuals(screen)
@@ -559,6 +601,316 @@ function MapObjectFinder:tpRefreshPipetteResultItems(screen)
     return true
 end
 
+local function tpNormalizeSearchText(text)
+    if text == nil then
+        return ""
+    end
+
+    return string.lower(tostring(text))
+end
+
+-- Bewertet, wie gut ein einzelnes Suchwort zu einem Textfeld passt.
+-- Bewusst ohne Tippfehler-Toleranz gehalten (nur Teilwort-Suche +
+-- Relevanz-Sortierung, wie besprochen) - dadurch bleiben Treffer
+-- nachvollziehbar statt "geraten".
+local function tpSearchWordScore(word, field)
+    if word == "" or field == "" then
+        return 0
+    end
+
+    if field == word then
+        return 100
+    end
+
+    if string.sub(field, 1, string.len(word)) == word then
+        return 50
+    end
+
+    local searchPattern = " " .. word
+    if string.find(" " .. field .. " ", searchPattern .. " ", 1, true) ~= nil then
+        return 30
+    end
+
+    if string.find(field, word, 1, true) ~= nil then
+        return 10
+    end
+
+    return 0
+end
+
+-- Kleine, bewusst kompakte Alias-Tabelle: Sammelbegriff -> Liste von
+-- Textfragmenten, die im INTERNEN (nicht-lokalisierten) Kategorie-
+-- oder Tab-Namen gesucht werden. Bewusst klein gehalten und leicht
+-- um weitere Begriffe erweiterbar (einfach eine Zeile ergänzen).
+local TP_SEARCH_CATEGORY_ALIASES = {
+    ["stall"] = { "husbandry", "animal" },
+    ["ställe"] = { "husbandry", "animal" },
+    ["staelle"] = { "husbandry", "animal" },
+    ["stalle"] = { "husbandry", "animal" },
+    ["tier"] = { "husbandry", "animal" },
+    ["tiere"] = { "husbandry", "animal" },
+    ["barn"] = { "husbandry", "animal" },
+    ["animal"] = { "husbandry", "animal" },
+    ["animals"] = { "husbandry", "animal" },
+    ["husbandry"] = { "husbandry", "animal" },
+    ["étable"] = { "husbandry", "animal" },
+    ["etable"] = { "husbandry", "animal" },
+    ["animaux"] = { "husbandry", "animal" },
+    ["élevage"] = { "husbandry", "animal" },
+    ["elevage"] = { "husbandry", "animal" }
+}
+
+local function tpMatchesCategoryAlias(word, entry)
+    local fragments = TP_SEARCH_CATEGORY_ALIASES[word]
+    if fragments == nil or entry == nil then
+        return false
+    end
+
+    for _, fragment in ipairs(fragments) do
+        if (entry.categoryNameField ~= nil and string.find(entry.categoryNameField, fragment, 1, true) ~= nil)
+            or (entry.tabNameField ~= nil and string.find(entry.tabNameField, fragment, 1, true) ~= nil) then
+            return true
+        end
+    end
+
+    return false
+end
+
+function MapObjectFinder:tpGetSearchState(screen)
+    if screen == nil then
+        return nil
+    end
+
+    if screen.tpSearchState == nil then
+        screen.tpSearchState = {
+            index = nil,
+            lastQuery = nil
+        }
+    end
+
+    return screen.tpSearchState
+end
+
+function MapObjectFinder:tpInvalidateSearchIndex(screen)
+    local state = self:tpGetSearchState(screen)
+    if state ~= nil then
+        state.index = nil
+        state.lastQuery = nil
+    end
+end
+
+-- Kleine, bewusst überschaubare Alias-Tabelle für Sammelbegriffe,
+-- die sich technisch zuverlässig erkennen lassen (nicht nur über
+-- den Namenstext). Aktuell: "Baum" erkennt alle Objekte, deren
+-- StoreItem ein species/treeType/treeSaplingType-Feld trägt -
+-- genau das Merkmal, das unsere eigene Baumerkennung an anderer
+-- Stelle im Code bereits nutzt.
+local TP_SEARCH_CONCEPT_ALIASES = {
+    ["baum"] = "tree",
+    ["bäume"] = "tree",
+    ["baeume"] = "tree",
+    ["baume"] = "tree",
+    ["tree"] = "tree",
+    ["trees"] = "tree",
+    ["arbre"] = "tree",
+    ["arbres"] = "tree"
+}
+
+local function tpIsTreeStoreItem(item)
+    if type(item) ~= "table" or type(item.storeItem) ~= "table" then
+        return false
+    end
+
+    local storeItem = item.storeItem
+    if storeItem.species ~= nil or storeItem.treeType ~= nil or storeItem.treeSaplingType ~= nil then
+        return true
+    end
+
+    if type(storeItem.brush) == "table" then
+        local brush = storeItem.brush
+        if brush.species ~= nil or brush.treeType ~= nil or brush.treeSaplingType ~= nil then
+            return true
+        end
+    end
+
+    return false
+end
+
+function MapObjectFinder:tpGetSearchItemDisplayName(item)
+    if type(item) ~= "table" then
+        return ""
+    end
+
+    local storeItem = type(item.storeItem) == "table" and item.storeItem or nil
+    return tostring(
+        item.title
+        or item.name
+        or (storeItem ~= nil and (storeItem.title or storeItem.name))
+        or ""
+    )
+end
+
+-- Baut eine flache, durchsuchbare Liste aus allen Baumenü-Kategorien
+-- auf, mit Ausnahme der eigenen Pipette-Kategorie (die soll nicht
+-- sich selbst durchsuchen).
+function MapObjectFinder:tpBuildSearchIndex(screen)
+    local index = {}
+
+    if screen == nil or type(screen.categories) ~= "table" or type(screen.items) ~= "table" then
+        return index
+    end
+
+    for categoryIndex, category in ipairs(screen.categories) do
+        local categoryName = type(category) == "table" and tostring(category.name or "") or ""
+        if categoryName ~= "TP_PIPETTE_MENU" then
+            local categoryTitle = type(category) == "table" and tostring(category.title or "") or ""
+            local categoryTabs = type(screen.items[categoryIndex]) == "table" and screen.items[categoryIndex] or {}
+
+            for tabIndex, tabItems in pairs(categoryTabs) do
+                if type(tabItems) == "table" then
+                    local tab = type(category) == "table" and type(category.tabs) == "table" and category.tabs[tabIndex] or nil
+                    local tabTitle = type(tab) == "table" and tostring(tab.title or "") or ""
+                    local tabName = type(tab) == "table" and tostring(tab.name or "") or ""
+
+                    for _, item in ipairs(tabItems) do
+                        if type(item) == "table" then
+                            table.insert(index, {
+                                item = item,
+                                nameField = tpNormalizeSearchText(self:tpGetSearchItemDisplayName(item)),
+                                categoryField = tpNormalizeSearchText(categoryTitle),
+                                tabField = tpNormalizeSearchText(tabTitle),
+                                categoryNameField = tpNormalizeSearchText(categoryName),
+                                tabNameField = tpNormalizeSearchText(tabName),
+                                conceptTags = tpIsTreeStoreItem(item) and { tree = true } or {}
+                            })
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return index
+end
+
+-- Führt die eigentliche Suche aus: jedes eingegebene Wort muss
+-- irgendwo (Name, Kategorie oder Tab) vorkommen, Reihenfolge
+-- spielt keine Rolle. Ergebnisse werden nach Relevanz-Summe
+-- sortiert (bei Gleichstand alphabetisch, für stabile Reihenfolge).
+function MapObjectFinder:tpPerformSearch(screen, queryText)
+    local state = self:tpGetSearchState(screen)
+    if state == nil then
+        return {}
+    end
+
+    if state.index == nil then
+        state.index = self:tpBuildSearchIndex(screen)
+    end
+
+    local normalizedQuery = tpNormalizeSearchText(queryText)
+    state.lastQuery = normalizedQuery
+
+    if normalizedQuery == "" then
+        return {}
+    end
+
+    local words = {}
+    for word in string.gmatch(normalizedQuery, "%S+") do
+        table.insert(words, word)
+    end
+
+    if #words == 0 then
+        return {}
+    end
+
+    local scoredResults = {}
+
+    for _, entry in ipairs(state.index) do
+        local totalScore = 0
+        local allWordsMatch = true
+
+        for _, word in ipairs(words) do
+            local bestScore = math.max(
+                tpSearchWordScore(word, entry.nameField),
+                tpSearchWordScore(word, entry.categoryField),
+                tpSearchWordScore(word, entry.tabField)
+            )
+
+            local conceptTag = TP_SEARCH_CONCEPT_ALIASES[word]
+            if conceptTag ~= nil and entry.conceptTags ~= nil and entry.conceptTags[conceptTag] == true then
+                bestScore = math.max(bestScore, 60)
+            end
+
+            if tpMatchesCategoryAlias(word, entry) then
+                bestScore = math.max(bestScore, 40)
+            end
+
+            if bestScore <= 0 then
+                allWordsMatch = false
+                break
+            end
+
+            totalScore = totalScore + bestScore
+        end
+
+        if allWordsMatch then
+            table.insert(scoredResults, { item = entry.item, score = totalScore, name = entry.nameField })
+        end
+    end
+
+    table.sort(scoredResults, function(a, b)
+        if a.score == b.score then
+            return a.name < b.name
+        end
+        return a.score > b.score
+    end)
+
+    local resultItems = {}
+    for _, result in ipairs(scoredResults) do
+        table.insert(resultItems, result.item)
+    end
+
+    return resultItems
+end
+
+function MapObjectFinder:tpApplySearchResults(screen, resultItems)
+    local categoryIndex, tabIndex = self:tpFindSearchScreenIndices(screen)
+    if categoryIndex == nil or tabIndex == nil or screen == nil or type(screen.items) ~= "table" then
+        return false
+    end
+
+    if type(screen.items[categoryIndex]) ~= "table" then
+        screen.items[categoryIndex] = {}
+    end
+
+    screen.items[categoryIndex][tabIndex] = resultItems or {}
+
+    if self:tpIsSearchResultTabActive(screen)
+        and screen.itemList ~= nil
+        and screen.itemList.reloadData ~= nil then
+        pcall(function()
+            screen.itemList:reloadData()
+        end)
+    end
+
+    return true
+end
+
+function MapObjectFinder:tpOnSearchTextChanged(screen, text)
+    if screen == nil then
+        return
+    end
+
+    local results = self:tpPerformSearch(screen, text)
+    self:tpApplySearchResults(screen, results)
+
+    local uiState = self:tpGetPipetteUiState(screen)
+    if uiState ~= nil and uiState.searchPlaceholder ~= nil and uiState.searchPlaceholder.setVisible ~= nil then
+        uiState.searchPlaceholder:setVisible(tostring(text or "") == "")
+    end
+end
+
+
 function MapObjectFinder:tpUpdatePipetteResultArea()
     if not self:isConstructionScreenOpen() then
         return
@@ -576,6 +928,9 @@ function MapObjectFinder:tpUpdatePipetteResultArea()
     local state = self:tpGetPipetteUiState(screen)
     if state ~= nil and state.container ~= nil then
         state.container:setVisible(self:tpIsPipetteResultTabActive(screen))
+    end
+    if state ~= nil and state.searchContainer ~= nil then
+        state.searchContainer:setVisible(self:tpIsSearchResultTabActive(screen))
     end
 
     self:tpUpdatePipettePanelVisuals(screen)
@@ -647,6 +1002,15 @@ function ConstructionScreen:onPtpPipetteActivateButtonClick()
 end
 
 
+function ConstructionScreen:onTpSearchTextChanged(element, text)
+    if MapObjectFinder == nil then
+        return
+    end
+
+    MapObjectFinder:tpOnSearchTextChanged(self, text)
+end
+
+
 local function tpAfterConstructionScreenClose(screen, ...)
     if MapObjectFinder == nil then
         return
@@ -659,6 +1023,52 @@ end
 
 if ConstructionScreen ~= nil and ConstructionScreen.onClose ~= nil then
     ConstructionScreen.onClose = Utils.appendedFunction(ConstructionScreen.onClose, tpAfterConstructionScreenClose)
+end
+
+local function tpAfterConstructionTabOrCategoryChanged(screen, ...)
+    if MapObjectFinder == nil or screen == nil then
+        return
+    end
+
+    if not MapObjectFinder:tpIsSearchResultTabActive(screen) then
+        return
+    end
+
+    local uiState = MapObjectFinder:tpGetPipetteUiState(screen)
+
+    local currentText = ""
+    if uiState ~= nil and uiState.searchInput ~= nil and uiState.searchInput.getText ~= nil then
+        local ok, text = pcall(function()
+            return uiState.searchInput:getText()
+        end)
+        if ok and text ~= nil then
+            currentText = text
+        end
+    end
+
+    -- Erzwingt einen Refresh der Kachel-Ansicht beim Betreten des
+    -- Such-Tabs, damit dort nicht der alte Inhalt des zuvor
+    -- besuchten Tabs stehen bleibt (z.B. Produktion), solange
+    -- noch nichts eingetippt wurde.
+    MapObjectFinder:tpOnSearchTextChanged(screen, currentText)
+
+    if uiState == nil or uiState.searchInput == nil then
+        return
+    end
+
+    if uiState.searchInput.setFocus ~= nil then
+        pcall(function()
+            uiState.searchInput:setFocus()
+        end)
+    end
+end
+
+if ConstructionScreen ~= nil and ConstructionScreen.setCurrentCategory ~= nil then
+    ConstructionScreen.setCurrentCategory = Utils.appendedFunction(ConstructionScreen.setCurrentCategory, tpAfterConstructionTabOrCategoryChanged)
+end
+
+if ConstructionScreen ~= nil and ConstructionScreen.setCurrentTab ~= nil then
+    ConstructionScreen.setCurrentTab = Utils.appendedFunction(ConstructionScreen.setCurrentTab, tpAfterConstructionTabOrCategoryChanged)
 end
 
 
@@ -699,29 +1109,6 @@ function MapObjectFinder:mouseEvent(posX, posY, isDown, isUp, button)
         self.nextArmedStatusRefreshAt = 0
         self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
     end
-end
-
-function MapObjectFinder:tpGetCurrentPipetteSelectedItem(screen)
-    if screen == nil or screen.itemList == nil or not self:tpIsPipetteResultTabActive(screen) then
-        return nil, nil
-    end
-
-    local categoryIndex, tabIndex = self:tpFindPipetteScreenIndices(screen)
-    if categoryIndex == nil or tabIndex == nil or type(screen.items) ~= "table" then
-        return nil, nil
-    end
-
-    local list = screen.items[categoryIndex] ~= nil and screen.items[categoryIndex][tabIndex] or nil
-    if type(list) ~= "table" then
-        return nil, nil
-    end
-
-    local selectedIndex = tonumber(screen.itemList.selectedIndex or screen.itemList.selectedItemIndex or screen.selectedIndex or 0)
-    if selectedIndex == nil or selectedIndex <= 0 then
-        return nil, nil
-    end
-
-    return list[selectedIndex], selectedIndex
 end
 
 function MapObjectFinder:tpGetCurrentConstructionSelectedItem(screen)
@@ -1496,24 +1883,13 @@ function MapObjectFinder:tpTryHandleStaticMapObjectHit(screen)
 
     local label = tpCleanPanelObjectLabel(self:tpGetRaycastHitNodeLabel())
     local hierarchy = self:tpBuildRaycastHitNodeHierarchyLabel()
-    local staticTreeItem = self:tpCreateStaticTreeDisplayItem(hierarchy)
+    local treeName = tpExtractTreeNameFromHierarchy(hierarchy)
 
     self.tpResultItems = {}
     self:tpResetLayerMenuOutput()
 
-    if staticTreeItem ~= nil then
-        self.tpResultItems = {staticTreeItem}
-        self:tpDecoratePipetteResultNames(self.tpResultItems)
-        self.tpPipettePanelStatusText = nil
-        if screen ~= nil then
-            self:tpRefreshPipetteResultItems(screen)
-            self:tpUpdatePipettePanelVisuals(screen)
-        end
-        tpLog("staticTreeMapObjectRecognized node=" .. tostring(label) .. " path=" .. tostring(hierarchy))
-        return true
-    end
-
-    self.tpPipettePanelStatusText = string.format(tpText("TP_msg_staticNotInBuildMenu", "No construction menu entry at this position. Static map object: %s"), label)
+    local statusLabel = treeName ~= nil and string.format("%s: %s", tpText("TP_label_treeDetected", "Tree detected"), treeName) or label
+    self.tpPipettePanelStatusText = string.format(tpText("TP_msg_staticNotInBuildMenu", "No construction menu entry at this position. Static map object: %s"), statusLabel)
     if screen ~= nil then
         self:tpRefreshPipetteResultItems(screen)
         self:tpUpdatePipettePanelVisuals(screen)
@@ -1605,6 +1981,60 @@ function MapObjectFinder:tpResetLayerMenuOutput()
 end
 
 
+local function tpCollectAllStoreItemsSafe()
+    local items = {}
+
+    if g_storeManager == nil then
+        return items
+    end
+
+    local ok, result = pcall(function()
+        if g_storeManager.getItems ~= nil then
+            return g_storeManager:getItems()
+        end
+        return nil
+    end)
+
+    if ok and type(result) == "table" then
+        for _, item in ipairs(result) do
+            table.insert(items, item)
+        end
+    end
+
+    if #items == 0 and type(g_storeManager.items) == "table" then
+        for _, item in ipairs(g_storeManager.items) do
+            table.insert(items, item)
+        end
+    end
+
+    return items
+end
+
+-- Rückfallebene fuer StoreItems, deren xmlFilename sich nur in Schreibweise
+-- oder Slash-Richtung vom Pfad des platzierten Objekts unterscheidet.
+-- Das kann bei neuen Prefab-/Kartenvorlagen auftreten, bei denen der
+-- registrierte Store-Pfad nicht exakt dem Pfad entspricht, den das
+-- platzierte Objekt zur Laufzeit meldet.
+function MapObjectFinder:tpFindStoreItemByFilenameFallback(xmlFilename)
+    local wanted = tpNormalizeComparableFilename(xmlFilename)
+    if wanted == nil then
+        return nil
+    end
+
+    for _, item in ipairs(tpCollectAllStoreItemsSafe()) do
+        if type(item) == "table" then
+            local itemFilename = tpNormalizeComparableFilename(
+                item.xmlFilename or item.filename or item.configFileName
+            )
+            if itemFilename ~= nil and itemFilename == wanted then
+                return item
+            end
+        end
+    end
+
+    return nil
+end
+
 function MapObjectFinder:tpResolveStoreItemFromPlaceableObject(object)
     if object == nil or g_storeManager == nil or g_storeManager.getItemByXMLFilename == nil then
         return nil, nil
@@ -1622,6 +2052,13 @@ function MapObjectFinder:tpResolveStoreItemFromPlaceableObject(object)
     if ok and storeItem ~= nil then
         return storeItem, xmlFilename
     end
+
+    local fallbackItem = self:tpFindStoreItemByFilenameFallback(xmlFilename)
+    if fallbackItem ~= nil then
+        return fallbackItem, xmlFilename
+    end
+
+    print(string.format("[TexturePipette] StoreItem nicht gefunden fuer xmlFilename=%s", tostring(xmlFilename)))
 
     return nil, xmlFilename
 end
@@ -1804,52 +2241,6 @@ function MapObjectFinder:tpCollectPlaceableDisplayItemsAtCurrentRaycast(screen)
     return resultItems
 end
 
-function MapObjectFinder:tpTryPickPlaceableAtCurrentRaycast()
-    local object, objectNodeId = self:tpResolveNodeObjectFromRaycastHit()
-    if object == nil then
-        return false
-    end
-
-    local storeItem, xmlFilename = self:tpResolveStoreItemFromPlaceableObject(object)
-    if storeItem == nil then
-        return false
-    end
-
-    local screen = self:tpResolveConstructionLogicScreen()
-    local displayItem, displayResolveMode = self:tpFindConstructionDisplayItemForStoreItem(screen, storeItem, xmlFilename)
-
-    if displayItem == nil then
-        local storeName = tostring(storeItem.name or storeItem.customEnvironment or storeItem.xmlFilename or "Object")
-        self.tpResultItems = {}
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-
-        tpShowMessage(string.format(tpText("TP_msg_objectNotReady", "Not buildable: %s"), storeName))
-        return true
-    end
-
-    self.tpResultItems = { displayItem }
-
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-        self:tpTryPreselectFirstPipetteResult(screen)
-    end
-
-    local displayStoreItem = type(displayItem.storeItem) == "table" and displayItem.storeItem or storeItem
-    local storeName = tostring(
-        displayItem.name
-        or (displayStoreItem ~= nil and displayStoreItem.name)
-        or storeItem.name
-        or storeItem.customEnvironment
-        or storeItem.xmlFilename
-        or "Object"
-    )
-
-    tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), storeName))
-
-    return true
-end
 
 
 function MapObjectFinder:findMouseWorldPosition()
@@ -2334,28 +2725,6 @@ function MapObjectFinder:tpTryPreselectFirstPipetteResult(screen)
 
     return ok == true
 end
-
-function MapObjectFinder:tpStoreResultMatchesForResultTab(mergedMatches)
-    self:tpRestorePipetteDecoratedNames()
-    local resultItems = {}
-
-    for _, entry in ipairs(mergedMatches or {}) do
-        if entry.sourceItem ~= nil then
-            table.insert(resultItems, entry.sourceItem)
-        end
-    end
-
-    self.tpResultItems = resultItems
-
-    local screen = self:tpResolveConstructionLogicScreen()
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-    end
-
-    return #resultItems
-end
-
 
 function MapObjectFinder:tpClearPipetteSelection(screen, reason)
     self:tpRestorePipetteDecoratedNames()
@@ -5158,50 +5527,6 @@ function MapObjectFinder:tpSampleDebugDensity(planeId, x, y, z)
     return nil
 end
 
-function MapObjectFinder:tpFindDebugRasterBoundary(planeId, x, y, z, dx, dz, maxDistance, stepSize)
-    local centerValue = self:tpSampleDebugDensity(planeId, x, y, z)
-    if centerValue == nil then
-        return nil
-    end
-
-    maxDistance = maxDistance or 2.0
-    stepSize = stepSize or 0.025
-
-    local lastSame = 0
-    local firstDifferent = nil
-    local distance = stepSize
-    while distance <= maxDistance do
-        local value = self:tpSampleDebugDensity(planeId, x + (dx * distance), y, z + (dz * distance))
-        if value == nil then
-            break
-        end
-        if value ~= centerValue then
-            firstDifferent = distance
-            break
-        end
-        lastSame = distance
-        distance = distance + stepSize
-    end
-
-    if firstDifferent == nil then
-        return nil
-    end
-
-    local low = lastSame
-    local high = firstDifferent
-    for _ = 1, 8 do
-        local mid = (low + high) * 0.5
-        local value = self:tpSampleDebugDensity(planeId, x + (dx * mid), y, z + (dz * mid))
-        if value == centerValue then
-            low = mid
-        else
-            high = mid
-        end
-    end
-
-    return high
-end
-
 function MapObjectFinder:tpBuildAlignedDebugGridPosition(x, y, z)
     local planeId, layerName = self:tpResolveDebugFoliagePlane()
     if planeId == nil then
@@ -5458,17 +5783,6 @@ local function tpNormalizeTreeComparable(value)
     return text
 end
 
-local function tpTreeTextMatches(haystack, needle)
-    haystack = tpNormalizeTreeComparable(haystack)
-    needle = tpNormalizeTreeComparable(needle)
-
-    if haystack == nil or needle == nil or string.len(haystack) < 4 or string.len(needle) < 4 then
-        return false
-    end
-
-    return haystack == needle
-end
-
 function MapObjectFinder:tpGetTreeDescFromSplitShape(splitShapeId)
     if splitShapeId == nil or splitShapeId == 0 then
         return nil, nil
@@ -5574,100 +5888,7 @@ function MapObjectFinder:tpCollectTreeDescsAtWorldPosition(x, y, z)
     return results
 end
 
-function MapObjectFinder:tpTreeItemTextMatchesDesc(item, desc)
-    if type(item) ~= "table" or type(desc) ~= "table" then
-        return false
-    end
-
-    local storeItem = type(item.storeItem) == "table" and item.storeItem or nil
-    local brush = storeItem ~= nil and type(storeItem.brush) == "table" and storeItem.brush or nil
-
-    local descName = desc.name
-    local descTitle = desc.title
-    local descIndex = desc.index
-
-    local fields = {
-        item.name,
-        item.title,
-        item.xmlFilename,
-        item.filename,
-        item.configFileName,
-        item.imageFilename,
-        storeItem ~= nil and storeItem.name or nil,
-        storeItem ~= nil and storeItem.title or nil,
-        storeItem ~= nil and storeItem.xmlFilename or nil,
-        storeItem ~= nil and storeItem.filename or nil,
-        storeItem ~= nil and storeItem.configFileName or nil,
-        storeItem ~= nil and storeItem.imageFilename or nil,
-        storeItem ~= nil and storeItem.species or nil,
-        storeItem ~= nil and storeItem.customEnvironment or nil,
-        brush ~= nil and brush.type or nil,
-        brush ~= nil and brush.category or nil,
-        brush ~= nil and brush.tab or nil
-    }
-
-    if type(item.brushParameters) == "table" then
-        for _, value in ipairs(item.brushParameters) do
-            table.insert(fields, value)
-        end
-    end
-
-    if brush ~= nil and type(brush.parameters) == "table" then
-        for _, value in ipairs(brush.parameters) do
-            table.insert(fields, value)
-        end
-    end
-
-    for _, field in ipairs(fields) do
-        if tpTreeTextMatches(field, descName) == true or tpTreeTextMatches(field, descTitle) == true then
-            return true
-        end
-    end
-
-
-    return false
-end
-
-function MapObjectFinder:tpCreateTreeProbeDisplayItem(treeInfo)
-    local desc = type(treeInfo) == "table" and treeInfo.desc or nil
-    if type(desc) ~= "table" then
-        return nil
-    end
-
-    local title = tostring(desc.title or desc.name or "Tree")
-    local name = tostring(desc.name or desc.title or "TREE")
-    local splitType = tostring(type(treeInfo) == "table" and (treeInfo.splitType or "?") or "?")
-    local label = string.format("%s: %s", tpText("TP_label_treeDetected", "Tree detected"), title)
-    local iconPath = nil
-
-    if self.modDirectory ~= nil then
-        iconPath = tostring(self.modDirectory) .. "icon_TexturePipette.dds"
-    elseif g_currentModDirectory ~= nil then
-        iconPath = tostring(g_currentModDirectory) .. "icon_TexturePipette.dds"
-    end
-
-    return {
-        name = label,
-        title = label,
-        price = 0,
-        imageFilename = iconPath,
-        tpTreeProbeOnly = true,
-        storeItem = {
-            name = label,
-            title = label,
-            price = 0,
-            imageFilename = iconPath,
-            xmlFilename = "",
-            customEnvironment = "MapObjectFinderTreeProbe",
-            brush = {
-                type = "select",
-                parameters = {}
-            }
-        }
-    }
-end
-
-local function tpExtractTreeNameFromHierarchy(hierarchy)
+tpExtractTreeNameFromHierarchy = function(hierarchy)
     if hierarchy == nil then
         return nil
     end
@@ -5683,42 +5904,6 @@ local function tpExtractTreeNameFromHierarchy(hierarchy)
     value = string.gsub(value, "stage(%d+)", "stage %1")
     value = string.gsub(value, "Stage(%d+)", "Stage %1")
     return value
-end
-
-function MapObjectFinder:tpCreateStaticTreeDisplayItem(hierarchy)
-    local treeName = tpExtractTreeNameFromHierarchy(hierarchy)
-    if treeName == nil then
-        return nil
-    end
-
-    local label = string.format("%s: %s", tpText("TP_label_treeDetected", "Tree detected"), treeName)
-    local iconPath = nil
-
-    if self.modDirectory ~= nil then
-        iconPath = tostring(self.modDirectory) .. "icon_TexturePipette.dds"
-    elseif g_currentModDirectory ~= nil then
-        iconPath = tostring(g_currentModDirectory) .. "icon_TexturePipette.dds"
-    end
-
-    return {
-        name = label,
-        title = label,
-        price = 0,
-        imageFilename = iconPath,
-        tpTreeProbeOnly = true,
-        storeItem = {
-            name = label,
-            title = label,
-            price = 0,
-            imageFilename = iconPath,
-            xmlFilename = "",
-            customEnvironment = "MapObjectFinderStaticTree",
-            brush = {
-                type = "select",
-                parameters = {}
-            }
-        }
-    }
 end
 
 local function tpTreeTextHasTreeMarker(value)
@@ -5883,55 +6068,6 @@ function MapObjectFinder:tpFindTreePlaceableCandidates(screen, treeInfo)
     return candidates
 end
 
-function MapObjectFinder:tpFindTreeCatalogueCandidates(screen, treeInfo)
-    local candidates = {}
-    local desc = treeInfo ~= nil and treeInfo.desc or nil
-    if screen == nil or type(screen.items) ~= "table" or type(desc) ~= "table" then
-        return candidates
-    end
-
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    for itemIndex, item in ipairs(tabItems) do
-                        if type(item) == "table" then
-                            local evidence = tpTreeCollectComparableEvidence(item, desc, treeInfo)
-                            local descHits = #evidence.desc
-                            local treeHits = #evidence.tree
-
-                            if treeHits > 0 then
-                                table.insert(candidates, {
-                                    item = item,
-                                    categoryIndex = categoryIndex,
-                                    tabIndex = tabIndex,
-                                    itemIndex = itemIndex,
-                                    descHits = descHits,
-                                    treeHits = treeHits,
-                                    descEvidence = table.concat(evidence.desc, " ; "),
-                                    treeEvidence = table.concat(evidence.tree, " ; ")
-                                })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    table.sort(candidates, function(a, b)
-        local aScore = (tonumber(a.descHits) or 0) * 100 + (tonumber(a.treeHits) or 0)
-        local bScore = (tonumber(b.descHits) or 0) * 100 + (tonumber(b.treeHits) or 0)
-        if aScore == bScore then
-            return tostring((a.item or {}).name or "") < tostring((b.item or {}).name or "")
-        end
-        return aScore > bScore
-    end)
-
-    return candidates
-end
-
-
 function MapObjectFinder:tpFindTreeDisplayItemsForDescs(screen, treeDescs)
     local results = {}
 
@@ -5974,14 +6110,9 @@ function MapObjectFinder:tpFindTreeDisplayItemsForDescs(screen, treeDescs)
                     end
                 end
             else
-                local probeItem = self:tpCreateTreeProbeDisplayItem(treeInfo)
-                if probeItem ~= nil then
-                    table.insert(results, probeItem)
-                end
-
                 if tpIsDebugModeEnabled() == true then
                     tpLog(string.format(
-                        "treePick noSafePlaceableMatch descName=%s descTitle=%s splitType=%s exactCandidates=%s mode=probeOnly",
+                        "treePick noSafePlaceableMatch descName=%s descTitle=%s splitType=%s exactCandidates=%s mode=skipped",
                         tostring(desc.name),
                         tostring(desc.title),
                         tostring(treeInfo.splitType),
@@ -6015,39 +6146,6 @@ function MapObjectFinder:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, 
     end
 
     return capped
-end
-
-function MapObjectFinder:tpTryPickTreeAtWorldPosition(screen, x, y, z)
-    local capped = self:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, z)
-    if #capped == 0 then
-        return false
-    end
-
-    self:tpDecoratePipetteResultNames(capped)
-    self.tpResultItems = capped
-
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-        if type(capped[1]) == "table" and capped[1].tpTreeProbeOnly ~= true then
-            self:tpTryPreselectFirstPipetteResult(screen)
-        end
-    end
-
-    local firstItem = capped[1]
-    local firstStoreItem = type(firstItem) == "table" and type(firstItem.storeItem) == "table" and firstItem.storeItem or nil
-    local displayName = tostring(
-        (type(firstItem) == "table" and (firstItem.tpPipetteMenuOriginalName or firstItem.name or firstItem.title))
-        or (firstStoreItem ~= nil and firstStoreItem.name)
-        or "Tree"
-    )
-    if type(firstItem) == "table" and firstItem.tpTreeProbeOnly == true then
-        tpShowMessage(displayName)
-    else
-        tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), displayName))
-    end
-
-    return true
 end
 
 function MapObjectFinder:tpLogTreeProbesAtWorldPosition(x, y, z)
@@ -6546,3 +6644,328 @@ end
 
 
 addModEventListener(MapObjectFinder)
+
+-- ============================================================
+-- LEGACY / UNGENUTZT
+-- Die folgenden Funktionen werden aktuell nirgends im Mod
+-- aufgerufen (weder direkt noch über die Engine-Callback-
+-- Konvention). Sie wurden hierher verschoben statt gelöscht,
+-- um den aktiven Code oben übersichtlich zu halten. Bei Bedarf
+-- einfach wieder verwenden bzw. zurückverschieben.
+-- ============================================================
+
+local TP_DEBUG_SUMMARY_PREFIXES = {
+    "treePick descs=",
+    "treePick placeableProbe",
+    "treePick placeableMatchAccepted",
+    "treePick noSafePlaceableMatch",
+    "treePick collectError=",
+    "pipetteMixedResults",
+    "foliageResultCandidates=",
+    "foliageResultCandidate index=",
+    "groundResultDisplaySuppressed=",
+    "rankSummary",
+    "treeDiag scanError=",
+    "treeDiag scan center=",
+    "treeDiag hit index=",
+    "treeDiag moreHits=",
+    "treeDiag descError",
+    "treeDiag skipped",
+    "treeDiagError=",
+    "staticMapObjectHitSuppressed",
+    "staticMapObjectHierarchy",
+}
+
+local function tpShouldPrintDebugSummary(message)
+    for _, prefix in ipairs(TP_DEBUG_SUMMARY_PREFIXES) do
+        if string.sub(message, 1, string.len(prefix)) == prefix then
+            return true
+        end
+    end
+
+    return false
+end
+
+function MapObjectFinder:tpSetPipettePanelStatus(text)
+    self.tpPipettePanelStatusText = tostring(text or "")
+    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
+end
+
+function MapObjectFinder:tpClearPipettePanelStatus()
+    self.tpPipettePanelStatusText = ""
+    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
+end
+
+function MapObjectFinder:tpGetCurrentPipetteSelectedItem(screen)
+    if screen == nil or screen.itemList == nil or not self:tpIsPipetteResultTabActive(screen) then
+        return nil, nil
+    end
+
+    local categoryIndex, tabIndex = self:tpFindPipetteScreenIndices(screen)
+    if categoryIndex == nil or tabIndex == nil or type(screen.items) ~= "table" then
+        return nil, nil
+    end
+
+    local list = screen.items[categoryIndex] ~= nil and screen.items[categoryIndex][tabIndex] or nil
+    if type(list) ~= "table" then
+        return nil, nil
+    end
+
+    local selectedIndex = tonumber(screen.itemList.selectedIndex or screen.itemList.selectedItemIndex or screen.selectedIndex or 0)
+    if selectedIndex == nil or selectedIndex <= 0 then
+        return nil, nil
+    end
+
+    return list[selectedIndex], selectedIndex
+end
+
+function MapObjectFinder:tpTryPickPlaceableAtCurrentRaycast()
+    local object, objectNodeId = self:tpResolveNodeObjectFromRaycastHit()
+    if object == nil then
+        return false
+    end
+
+    local storeItem, xmlFilename = self:tpResolveStoreItemFromPlaceableObject(object)
+    if storeItem == nil then
+        return false
+    end
+
+    local screen = self:tpResolveConstructionLogicScreen()
+    local displayItem, displayResolveMode = self:tpFindConstructionDisplayItemForStoreItem(screen, storeItem, xmlFilename)
+
+    if displayItem == nil then
+        local storeName = tostring(storeItem.name or storeItem.customEnvironment or storeItem.xmlFilename or "Object")
+        self.tpResultItems = {}
+        self:tpRefreshPipetteResultItems(screen)
+        self:tpUpdatePipettePanelVisuals(screen)
+
+        tpShowMessage(string.format(tpText("TP_msg_objectNotReady", "Not buildable: %s"), storeName))
+        return true
+    end
+
+    self.tpResultItems = { displayItem }
+
+    if screen ~= nil then
+        self:tpRefreshPipetteResultItems(screen)
+        self:tpUpdatePipettePanelVisuals(screen)
+        self:tpTryPreselectFirstPipetteResult(screen)
+    end
+
+    local displayStoreItem = type(displayItem.storeItem) == "table" and displayItem.storeItem or storeItem
+    local storeName = tostring(
+        displayItem.name
+        or (displayStoreItem ~= nil and displayStoreItem.name)
+        or storeItem.name
+        or storeItem.customEnvironment
+        or storeItem.xmlFilename
+        or "Object"
+    )
+
+    tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), storeName))
+
+    return true
+end
+
+function MapObjectFinder:tpStoreResultMatchesForResultTab(mergedMatches)
+    self:tpRestorePipetteDecoratedNames()
+    local resultItems = {}
+
+    for _, entry in ipairs(mergedMatches or {}) do
+        if entry.sourceItem ~= nil then
+            table.insert(resultItems, entry.sourceItem)
+        end
+    end
+
+    self.tpResultItems = resultItems
+
+    local screen = self:tpResolveConstructionLogicScreen()
+    if screen ~= nil then
+        self:tpRefreshPipetteResultItems(screen)
+        self:tpUpdatePipettePanelVisuals(screen)
+    end
+
+    return #resultItems
+end
+
+function MapObjectFinder:tpFindDebugRasterBoundary(planeId, x, y, z, dx, dz, maxDistance, stepSize)
+    local centerValue = self:tpSampleDebugDensity(planeId, x, y, z)
+    if centerValue == nil then
+        return nil
+    end
+
+    maxDistance = maxDistance or 2.0
+    stepSize = stepSize or 0.025
+
+    local lastSame = 0
+    local firstDifferent = nil
+    local distance = stepSize
+    while distance <= maxDistance do
+        local value = self:tpSampleDebugDensity(planeId, x + (dx * distance), y, z + (dz * distance))
+        if value == nil then
+            break
+        end
+        if value ~= centerValue then
+            firstDifferent = distance
+            break
+        end
+        lastSame = distance
+        distance = distance + stepSize
+    end
+
+    if firstDifferent == nil then
+        return nil
+    end
+
+    local low = lastSame
+    local high = firstDifferent
+    for _ = 1, 8 do
+        local mid = (low + high) * 0.5
+        local value = self:tpSampleDebugDensity(planeId, x + (dx * mid), y, z + (dz * mid))
+        if value == centerValue then
+            low = mid
+        else
+            high = mid
+        end
+    end
+
+    return high
+end
+
+local function tpTreeTextMatches(haystack, needle)
+    haystack = tpNormalizeTreeComparable(haystack)
+    needle = tpNormalizeTreeComparable(needle)
+
+    if haystack == nil or needle == nil or string.len(haystack) < 4 or string.len(needle) < 4 then
+        return false
+    end
+
+    return haystack == needle
+end
+
+function MapObjectFinder:tpTreeItemTextMatchesDesc(item, desc)
+    if type(item) ~= "table" or type(desc) ~= "table" then
+        return false
+    end
+
+    local storeItem = type(item.storeItem) == "table" and item.storeItem or nil
+    local brush = storeItem ~= nil and type(storeItem.brush) == "table" and storeItem.brush or nil
+
+    local descName = desc.name
+    local descTitle = desc.title
+    local descIndex = desc.index
+
+    local fields = {
+        item.name,
+        item.title,
+        item.xmlFilename,
+        item.filename,
+        item.configFileName,
+        item.imageFilename,
+        storeItem ~= nil and storeItem.name or nil,
+        storeItem ~= nil and storeItem.title or nil,
+        storeItem ~= nil and storeItem.xmlFilename or nil,
+        storeItem ~= nil and storeItem.filename or nil,
+        storeItem ~= nil and storeItem.configFileName or nil,
+        storeItem ~= nil and storeItem.imageFilename or nil,
+        storeItem ~= nil and storeItem.species or nil,
+        storeItem ~= nil and storeItem.customEnvironment or nil,
+        brush ~= nil and brush.type or nil,
+        brush ~= nil and brush.category or nil,
+        brush ~= nil and brush.tab or nil
+    }
+
+    if type(item.brushParameters) == "table" then
+        for _, value in ipairs(item.brushParameters) do
+            table.insert(fields, value)
+        end
+    end
+
+    if brush ~= nil and type(brush.parameters) == "table" then
+        for _, value in ipairs(brush.parameters) do
+            table.insert(fields, value)
+        end
+    end
+
+    for _, field in ipairs(fields) do
+        if tpTreeTextMatches(field, descName) == true or tpTreeTextMatches(field, descTitle) == true then
+            return true
+        end
+    end
+
+    return false
+end
+
+function MapObjectFinder:tpFindTreeCatalogueCandidates(screen, treeInfo)
+    local candidates = {}
+    local desc = treeInfo ~= nil and treeInfo.desc or nil
+    if screen == nil or type(screen.items) ~= "table" or type(desc) ~= "table" then
+        return candidates
+    end
+
+    for categoryIndex, categoryItems in pairs(screen.items) do
+        if type(categoryItems) == "table" then
+            for tabIndex, tabItems in pairs(categoryItems) do
+                if type(tabItems) == "table" then
+                    for itemIndex, item in ipairs(tabItems) do
+                        if type(item) == "table" then
+                            local evidence = tpTreeCollectComparableEvidence(item, desc, treeInfo)
+                            local descHits = #evidence.desc
+                            local treeHits = #evidence.tree
+
+                            if treeHits > 0 then
+                                table.insert(candidates, {
+                                    item = item,
+                                    categoryIndex = categoryIndex,
+                                    tabIndex = tabIndex,
+                                    itemIndex = itemIndex,
+                                    descHits = descHits,
+                                    treeHits = treeHits,
+                                    descEvidence = table.concat(evidence.desc, " ; "),
+                                    treeEvidence = table.concat(evidence.tree, " ; ")
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(candidates, function(a, b)
+        local aScore = (tonumber(a.descHits) or 0) * 100 + (tonumber(a.treeHits) or 0)
+        local bScore = (tonumber(b.descHits) or 0) * 100 + (tonumber(b.treeHits) or 0)
+        if aScore == bScore then
+            return tostring((a.item or {}).name or "") < tostring((b.item or {}).name or "")
+        end
+        return aScore > bScore
+    end)
+
+    return candidates
+end
+
+function MapObjectFinder:tpTryPickTreeAtWorldPosition(screen, x, y, z)
+    local capped = self:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, z)
+    if #capped == 0 then
+        return false
+    end
+
+    self:tpDecoratePipetteResultNames(capped)
+    self.tpResultItems = capped
+
+    if screen ~= nil then
+        self:tpRefreshPipetteResultItems(screen)
+        self:tpUpdatePipettePanelVisuals(screen)
+        self:tpTryPreselectFirstPipetteResult(screen)
+    end
+
+    local firstItem = capped[1]
+    local firstStoreItem = type(firstItem) == "table" and type(firstItem.storeItem) == "table" and firstItem.storeItem or nil
+    local displayName = tostring(
+        (type(firstItem) == "table" and (firstItem.tpPipetteMenuOriginalName or firstItem.name or firstItem.title))
+        or (firstStoreItem ~= nil and firstStoreItem.name)
+        or "Tree"
+    )
+    tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), displayName))
+
+    return true
+end

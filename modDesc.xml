@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
-<modDesc descVersion="109">
+<modDesc descVersion="111">
     <author>Nalathan</author>
-    <version>2.0.0.0</version>
+    <version>2.1.0.0</version>
 
     <title>
         <en>Terrain Texture And Object Picker</en>
@@ -24,8 +24,17 @@ Die Pipette kann bei Bedarf jederzeit erneut aktiviert werden. Dabei wird der ak
 
 Die Mod berücksichtigt verfügbare Bodentexturen und geeignete Foliage der jeweiligen Karte. Karten-Foliage wird erkannt, ohne zusätzliche Einträge ungeprüft in das normale Baumenü zu laden.
 
+Suche:
+Im Reiter „Suche“ (direkt neben „Pipette“) lässt sich das komplette Baumenü nach Stichworten durchsuchen. Mehrere Wörter können in beliebiger Reihenfolge eingegeben werden, die Treffer werden nach Relevanz sortiert. Bei allgemeinen Suchbegriffen erkennt die Suche zusammenhängende Objektgruppen – aktuell als erste Beispiele Bäume und Tierhaltung –, auch wenn der Begriff nicht wörtlich im Namen steht. Diese Erkennung wird nach und nach um weitere Bereiche erweitert.
+
 Credits:
 Dank an PeterPwn247 für „All Decorative Foliage“ und an modelleicher (Farming Agency) für „All The Ground Textures Ingame“. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
+
+Changelog 2.1.0.0:
+- Neuer Reiter „Suche“ im Baumenü: durchsucht alle Kategorien nach Stichworten, unabhängig von der Reihenfolge, sortiert nach Relevanz.
+- Erste zusammenhängende Objektgruppen für die Suche erkannt: Bäume und Tierhaltung werden auch ohne wörtlichen Namenstreffer gefunden.
+- StoreItems aus neuen Prefab-/Kartenvorlagen werden jetzt zuverlässig gefunden, auch wenn sich Pfade in Schreibweise unterscheiden.
+- Bäume ohne eindeutige Zuordnung zu einem Baumenü-Eintrag werden nicht mehr fälschlich als Kachel angezeigt, sondern nur noch als Hinweistext.
 
 Changelog 2.0.0.0:
 - Name auf Terrain Texture And Object Picker geändert.
@@ -64,8 +73,17 @@ If needed, the pipette can be activated again at any time. The active brush is r
 
 The mod considers available ground textures and suitable foliage of the current map. Map foliage is detected without loading additional entries into the regular construction menu unchecked.
 
+Search:
+The “Search” tab (right next to “Pipette”) lets you search the entire construction menu by keyword. Multiple words can be entered in any order, results are sorted by relevance. For general search terms, the search recognizes connected groups of objects – currently trees and husbandry as the first examples – even when the term doesn’t literally appear in the name. This recognition will be extended to more areas over time.
+
 Credits:
 Thanks to PeterPwn247 for “All Decorative Foliage” and to modelleicher (Farming Agency) for “All The Ground Textures Ingame”. Both mods helped with understanding how map content can be made available in the construction menu.
+
+Changelog 2.1.0.0:
+- New “Search” tab in the construction menu: searches all categories by keyword, order-independent, sorted by relevance.
+- First connected object groups recognized for search: trees and husbandry are found even without a literal name match.
+- StoreItems from new prefab/map templates are now found reliably, even when paths differ in capitalization.
+- Trees without a clear match to a construction-menu entry no longer show up as a broken tile, only as a status message.
 
 Changelog 2.0.0.0:
 - Renamed to Terrain Texture And Object Picker.
@@ -104,8 +122,17 @@ La pipette peut être réactivée à tout moment si nécessaire. Le pinceau acti
 
 Le mod prend en compte les textures de sol disponibles et la végétation compatible de la carte utilisée. La végétation de carte est détectée sans ajouter d’entrées non vérifiées au menu de construction standard.
 
+Recherche :
+L’onglet « Recherche » (juste à côté de « Pipette ») permet de rechercher dans tout le menu de construction par mot-clé. Plusieurs mots peuvent être saisis dans n’importe quel ordre, les résultats sont triés par pertinence. Pour les termes de recherche généraux, la recherche reconnaît des groupes d’objets liés – actuellement les arbres et l’élevage comme premiers exemples – même si le terme n’apparaît pas littéralement dans le nom. Cette reconnaissance sera étendue à d’autres domaines par la suite.
+
 Crédits :
 Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à comprendre comment rendre le contenu des cartes disponible dans le menu de construction.
+
+Changelog 2.1.0.0 :
+- Nouvel onglet « Recherche » dans le menu de construction : recherche dans toutes les catégories par mot-clé, ordre indifférent, tri par pertinence.
+- Premiers groupes d’objets liés reconnus pour la recherche : les arbres et l’élevage sont trouvés même sans correspondance littérale du nom.
+- Les StoreItems provenant de nouveaux modèles de préfabriqués/cartes sont désormais détectés de manière fiable, même en cas de différence de casse dans les chemins.
+- Les arbres sans correspondance claire avec une entrée du menu de construction ne s’affichent plus comme une case cassée, seulement comme un message d’état.
 
 Changelog 2.0.0.0 :
 - Renommé en Terrain Texture And Object Picker.
@@ -143,12 +170,14 @@ Changelog 1.1.0.0 :
         <text name="TP_msg_mapOnlyFoliage"><de>Karten-Foliage gefunden: %s</de><en>Map foliage found: %s</en><fr>Végétation de carte trouvée : %s</fr></text>
         <text name="TP_category_pipette"><de>Pipette</de><en>Pipette</en><fr>Pipette</fr></text>
         <text name="TP_tab_pipette"><de>Pipette</de><en>Pipette</en><fr>Pipette</fr></text>
+        <text name="TP_tab_search"><de>Suche</de><en>Search</en><fr>Recherche</fr></text>
         <text name="TP_tab_results"><de>Gefundene Objekte</de><en>Found Objects</en><fr>Objets trouvés</fr></text>
         <text name="TP_msg_noBuildMenuEntryHere"><de>An dieser Stelle wurde kein auswählbarer Baumenü-Eintrag gefunden.</de><en>No selectable construction menu entry found at this position.</en><fr>Aucune entrée sélectionnable du menu de construction trouvée à cet endroit.</fr></text>
         <text name="TP_msg_staticNotInBuildMenu"><de>An dieser Stelle gibt es keinen Baumenü-Eintrag. Festes Kartenobjekt: %s</de><en>No construction menu entry at this position. Static map object: %s</en><fr>Aucune entrée du menu de construction à cet endroit. Objet fixe de carte : %s</fr></text>
         <text name="TP_label_mapObject"><de>Kartenobjekt</de><en>map object</en><fr>objet de carte</fr></text>
         <text name="TP_label_treeDetected"><de>Baum erkannt</de><en>Tree detected</en><fr>Arbre détecté</fr></text>
         <text name="TP_button_activate"><de>Pipette aktivieren</de><en>Activate pipette</en><fr>Activer la pipette</fr></text>
+        <text name="TP_search_placeholder"><de>Suchen ...</de><en>Search ...</en><fr>Rechercher ...</fr></text>
         <text name="TP_button_active"><de>Pipette aktiv</de><en>Pipette active</en><fr>Pipette active</fr></text>
         <text name="TP_settings_title"><de>Terrain Texture And Object Picker</de><en>Terrain Texture And Object Picker</en><fr>Terrain Texture And Object Picker</fr></text>
         <text name="TP_pipetteEnabled_short"><de>Pipette aktivieren</de><en>Enable pipette</en><fr>Activer la pipette</fr></text>
