@@ -1,5 +1,9 @@
 ## Download
 
+Always up to date on Forbidden Mods:
+
+https://forbidden-mods.de/filebase/file/77329-texture-pipette/
+
 Official download on ModHub:
 
 https://www.farming-simulator.com/mod.php?mod_id=363383
@@ -23,5 +27,6 @@ Please include:
 
 - Website: https://www.nalathan.de/
 - YouTube: https://www.youtube.com/@nalathangaming
+- Forbidden Mods: https://forbidden-mods.de/filebase/file/77329-texture-pipette/
 - ModHub: https://www.farming-simulator.com/mod.php?mod_id=363383
 - Issues: https://github.com/Nalathan01/FS25_TexturePipette/issues
