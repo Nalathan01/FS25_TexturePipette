@@ -19,21 +19,13 @@ Texture Pipette (in-game: Terrain Texture And Object Picker) is a Farming Simula
 4. Confirm the result in the construction menu.
 5. Paint or build as usual.
 
-## Download
+## Current version
 
-Always up to date on Forbidden Mods:
-
-https://forbidden-mods.de/filebase/file/77329-texture-pipette/
-
-Official download on ModHub:
-
-https://www.farming-simulator.com/mod.php?mod_id=363383
+2.1.0.0
 
 ## Feedback
 
-Bug reports, compatibility feedback and feature requests are welcome through GitHub Issues:
-
-https://github.com/Nalathan01/FS25_TexturePipette/issues
+Bug reports, compatibility feedback and feature requests are welcome through GitHub Issues.
 
 Please include:
 
@@ -43,6 +35,16 @@ Please include:
 - Other relevant mods
 - A short description of what happened
 - log.txt if the issue is technical
+
+## Download
+
+Always up to date on Forbidden Mods:
+
+https://forbidden-mods.de/filebase/file/77329-texture-pipette/
+
+Official download on ModHub:
+
+https://www.farming-simulator.com/mod.php?mod_id=363383
 
 ## Links
 
