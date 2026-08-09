@@ -28,7 +28,9 @@ Suche:
 Im Reiter „Suche“ (direkt neben „Pipette“) lässt sich das komplette Baumenü nach Stichworten durchsuchen. Mehrere Wörter können in beliebiger Reihenfolge eingegeben werden, die Treffer werden nach Relevanz sortiert. Bei allgemeinen Suchbegriffen erkennt die Suche zusammenhängende Objektgruppen – aktuell als erste Beispiele Bäume und Tierhaltung –, auch wenn der Begriff nicht wörtlich im Namen steht. Diese Erkennung wird nach und nach um weitere Bereiche erweitert.
 
 Credits:
-Dank an PeterPwn247 für „All Decorative Foliage“ und an modelleicher (Farming Agency) für „All The Ground Textures Ingame“. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
+Dank an PeterPwn247 für „All Decorative Foliage” und an modelleicher (Farming Agency) für „All The Ground Textures Ingame”. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
+
+GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
 
 Changelog 2.1.0.0:
 - Neuer Reiter „Suche“ im Baumenü: durchsucht alle Kategorien nach Stichworten, unabhängig von der Reihenfolge, sortiert nach Relevanz.
@@ -79,6 +81,8 @@ The “Search” tab (right next to “Pipette”) lets you search the entire co
 Credits:
 Thanks to PeterPwn247 for “All Decorative Foliage” and to modelleicher (Farming Agency) for “All The Ground Textures Ingame”. Both mods helped with understanding how map content can be made available in the construction menu.
 
+GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
+
 Changelog 2.1.0.0:
 - New “Search” tab in the construction menu: searches all categories by keyword, order-independent, sorted by relevance.
 - First connected object groups recognized for search: trees and husbandry are found even without a literal name match.
@@ -127,6 +131,8 @@ L’onglet « Recherche » (juste à côté de « Pipette ») permet de recherch
 
 Crédits :
 Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à comprendre comment rendre le contenu des cartes disponible dans le menu de construction.
+
+GitHub : https://github.com/Nalathan01/FS25_TexturePipette/issues
 
 Changelog 2.1.0.0 :
 - Nouvel onglet « Recherche » dans le menu de construction : recherche dans toutes les catégories par mot-clé, ordre indifférent, tri par pertinence.
