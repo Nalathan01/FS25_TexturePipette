@@ -702,9 +702,11 @@ end
 -- Kleine, bewusst überschaubare Alias-Tabelle für Sammelbegriffe,
 -- die sich technisch zuverlässig erkennen lassen (nicht nur über
 -- den Namenstext). Aktuell: "Baum" erkennt alle Objekte, deren
--- StoreItem ein species/treeType/treeSaplingType-Feld trägt -
--- genau das Merkmal, das unsere eigene Baumerkennung an anderer
--- Stelle im Code bereits nutzt.
+-- StoreItem ein treeType/treeSaplingType-Feld trägt - genau das
+-- Merkmal, das unsere eigene Baumerkennung an anderer Stelle im
+-- Code bereits nutzt. (species NICHT verwenden - das ist ein
+-- generisches StoreItem-Klassifikationsfeld, das praktisch jedes
+-- Item trägt, nicht nur Bäume.)
 local TP_SEARCH_CONCEPT_ALIASES = {
     ["baum"] = "tree",
     ["bäume"] = "tree",
@@ -722,13 +724,13 @@ local function tpIsTreeStoreItem(item)
     end
 
     local storeItem = item.storeItem
-    if storeItem.species ~= nil or storeItem.treeType ~= nil or storeItem.treeSaplingType ~= nil then
+    if storeItem.treeType ~= nil or storeItem.treeSaplingType ~= nil then
         return true
     end
 
     if type(storeItem.brush) == "table" then
         local brush = storeItem.brush
-        if brush.species ~= nil or brush.treeType ~= nil or brush.treeSaplingType ~= nil then
+        if brush.treeType ~= nil or brush.treeSaplingType ~= nil then
             return true
         end
     end
@@ -757,17 +759,34 @@ function MapObjectFinder:tpBuildSearchIndex(screen)
     local index = {}
 
     if screen == nil or type(screen.categories) ~= "table" or type(screen.items) ~= "table" then
+        tpLog(string.format(
+            "tpBuildSearchIndex: aborted early (screen=%s categories=%s items=%s)",
+            tostring(screen ~= nil),
+            tostring(screen ~= nil and type(screen.categories)),
+            tostring(screen ~= nil and type(screen.items))
+        ))
         return index
     end
+
+    local scannedCategories = 0
+    local scannedTabs = 0
+    local emptyTabItemsSlots = 0
 
     for categoryIndex, category in ipairs(screen.categories) do
         local categoryName = type(category) == "table" and tostring(category.name or "") or ""
         if categoryName ~= "TP_PIPETTE_MENU" then
+            scannedCategories = scannedCategories + 1
             local categoryTitle = type(category) == "table" and tostring(category.title or "") or ""
-            local categoryTabs = type(screen.items[categoryIndex]) == "table" and screen.items[categoryIndex] or {}
+            local categoryTabsPresent = type(screen.items[categoryIndex]) == "table"
+            local categoryTabs = categoryTabsPresent and screen.items[categoryIndex] or {}
+
+            if not categoryTabsPresent then
+                emptyTabItemsSlots = emptyTabItemsSlots + 1
+            end
 
             for tabIndex, tabItems in pairs(categoryTabs) do
                 if type(tabItems) == "table" then
+                    scannedTabs = scannedTabs + 1
                     local tab = type(category) == "table" and type(category.tabs) == "table" and category.tabs[tabIndex] or nil
                     local tabTitle = type(tab) == "table" and tostring(tab.title or "") or ""
                     local tabName = type(tab) == "table" and tostring(tab.name or "") or ""
@@ -790,6 +809,11 @@ function MapObjectFinder:tpBuildSearchIndex(screen)
         end
     end
 
+    tpLog(string.format(
+        "tpBuildSearchIndex: categories=%d tabs=%d emptyCategorySlots=%d indexedEntries=%d",
+        scannedCategories, scannedTabs, emptyTabItemsSlots, #index
+    ))
+
     return index
 end
 
@@ -811,6 +835,7 @@ function MapObjectFinder:tpPerformSearch(screen, queryText)
     state.lastQuery = normalizedQuery
 
     if normalizedQuery == "" then
+        tpLog("tpPerformSearch: empty query, no results")
         return {}
     end
 
@@ -820,6 +845,7 @@ function MapObjectFinder:tpPerformSearch(screen, queryText)
     end
 
     if #words == 0 then
+        tpLog(string.format("tpPerformSearch: query %q had no words after split", normalizedQuery))
         return {}
     end
 
@@ -870,12 +896,21 @@ function MapObjectFinder:tpPerformSearch(screen, queryText)
         table.insert(resultItems, result.item)
     end
 
+    tpLog(string.format(
+        "tpPerformSearch: query=%q indexSize=%d matches=%d",
+        normalizedQuery, #state.index, #resultItems
+    ))
+
     return resultItems
 end
 
 function MapObjectFinder:tpApplySearchResults(screen, resultItems)
     local categoryIndex, tabIndex = self:tpFindSearchScreenIndices(screen)
     if categoryIndex == nil or tabIndex == nil or screen == nil or type(screen.items) ~= "table" then
+        tpLog(string.format(
+            "tpApplySearchResults: could not resolve search tab (categoryIndex=%s tabIndex=%s)",
+            tostring(categoryIndex), tostring(tabIndex)
+        ))
         return false
     end
 
@@ -885,13 +920,21 @@ function MapObjectFinder:tpApplySearchResults(screen, resultItems)
 
     screen.items[categoryIndex][tabIndex] = resultItems or {}
 
-    if self:tpIsSearchResultTabActive(screen)
+    local isActive = self:tpIsSearchResultTabActive(screen)
+    local reloaded = false
+    if isActive
         and screen.itemList ~= nil
         and screen.itemList.reloadData ~= nil then
         pcall(function()
             screen.itemList:reloadData()
         end)
+        reloaded = true
     end
+
+    tpLog(string.format(
+        "tpApplySearchResults: catIdx=%s tabIdx=%s results=%d tabActive=%s reloaded=%s",
+        tostring(categoryIndex), tostring(tabIndex), #(resultItems or {}), tostring(isActive), tostring(reloaded)
+    ))
 
     return true
 end
@@ -1092,12 +1135,17 @@ function MapObjectFinder:mouseEvent(posX, posY, isDown, isUp, button)
         self:tpTrackActiveConstructionSelection("worldClickMaybePaint", true)
     end
 
+    if button == 1 and isDown == true then
+        tpLog("mouseClick armed=" .. tostring(self.isPipetteArmed) .. " screenOpen=" .. tostring(self:isConstructionScreenOpen()) .. " mouseX=" .. tostring(mouseX) .. " isLikelyWorldArea=" .. tostring(isLikelyWorldArea))
+    end
+
     if self.isPipetteArmed
         and self:isConstructionScreenOpen()
         and button == 1
         and isDown == true then
 
         if not isLikelyWorldArea then
+            tpLog("pipetteClick ignored, click was outside world area (mouseX=" .. tostring(mouseX) .. ")")
             return
         end
 
@@ -4705,7 +4753,8 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
                 local imageName = ""
                 if match.sourceItem ~= nil and match.sourceItem.imageFilename ~= nil then
                     imageName = tostring(match.sourceItem.imageFilename)
-                    imageName = string.match(imageName, "([^/\]+)%.%w+$") or imageName
+                    imageName = string.gsub(imageName, "\\", "/")
+                    imageName = string.match(imageName, "([^/]+)%.%w+$") or imageName
                     imageName = " | " .. imageName
                 end
                 match.sourceItem.tpPipetteDebugSuffix = " [Foliage | " .. tostring(match.layerName or "?") .. " | State " .. tostring(match.state or "?") .. imageName .. "]"
@@ -6303,6 +6352,7 @@ end
 
 function MapObjectFinder:pickTextureAtCurrentMousePosition()
     local x, y, z = self:findMouseWorldPosition()
+    tpLog("pickTextureAtCurrentMousePosition called, worldPos=" .. tostring(x) .. "," .. tostring(y) .. "," .. tostring(z))
 
     if x == nil then
         tpShowMessage(tpText("TP_msg_noPosition", "No target found."))
