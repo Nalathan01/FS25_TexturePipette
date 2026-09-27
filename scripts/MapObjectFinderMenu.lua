@@ -13,7 +13,6 @@ MapObjectFinderMenu.settingsLoaded = false
 MapObjectFinderMenu.settingsPath = nil
 MapObjectFinderMenu.constructionMenuRegistered = false
 
-
 local function tpMenuText(key, fallback)
     if g_i18n ~= nil and g_i18n.getText ~= nil then
         local text = g_i18n:getText(key)
@@ -166,7 +165,6 @@ function MapObjectFinderMenu:registerConstructionMenu()
         end
     end
 
-
     self.constructionMenuRegistered = true
     return true
 end
@@ -215,14 +213,7 @@ function MapObjectFinderMenu:refreshConstructionScreen()
     end
 
     if screen ~= nil and screen.rebuildData ~= nil then
-        local ok, err = pcall(function()
-            screen:rebuildData()
-        end)
-
-        if ok then
-            local pipetteCategoryIndex, pipetteTabIndex = self:getTabIndex(screen, self.pipetteTabName)
-        else
-        end
+        screen:rebuildData()
     end
 end
 
@@ -241,12 +232,7 @@ function MapObjectFinderMenu:isPaintBrushActive()
     end
 
     if brush.isa ~= nil then
-        local ok, result = pcall(function()
-            return brush:isa(ConstructionBrushPaint)
-        end)
-        if ok then
-            return result == true
-        end
+        return brush:isa(ConstructionBrushPaint) == true
     end
 
     return getmetatable(brush) == ConstructionBrushPaint
@@ -264,7 +250,6 @@ if Landscaping ~= nil and Landscaping.getCost ~= nil then
         return MapObjectFinderMenu:onLandscapingGetCost(landscaping, superFunc, displacedVolumeOrArea, ...)
     end)
 end
-
 
 function MapObjectFinderMenu:onSettingsUiChanged(control)
     self:saveSettings()
@@ -323,13 +308,3 @@ function MapObjectFinderMenu:deleteMap()
 end
 
 addModEventListener(MapObjectFinderMenu)
-
--- ============================================================
--- LEGACY / UNGENUTZT
--- Wird aktuell nirgends aufgerufen. Hierher verschoben statt
--- gelöscht, um den aktiven Code oben übersichtlich zu halten.
--- ============================================================
-
-function MapObjectFinderMenu:toggle(key)
-    self:setEnabled(key, not self:isEnabled(key))
-end

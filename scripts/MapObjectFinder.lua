@@ -19,34 +19,15 @@ MapObjectFinder.tpLastConstructionSelectionSnapshot = nil
 MapObjectFinder.lastPipetteWorldX = nil
 MapObjectFinder.lastPipetteWorldY = nil
 MapObjectFinder.lastPipetteWorldZ = nil
-MapObjectFinder.tpDebugOverlayLines = {}
-MapObjectFinder.tpDebugLastClickTime = 0
 
 local TP_MOD_DIRECTORY = g_currentModDirectory or ""
 
-local TP_DEBUG_LOG = false
-local TP_HEAVY_DIAGNOSTICS = false
-local TP_DEBUG_OVERLAY_ENABLED = false
-local TP_FOLIAGE_TEST_SUPPRESS_GROUND_RESULTS = false
-local TP_MAP_ONLY_FOLIAGE_RESULT_ITEMS = false
 local TP_TREE_SCAN_RADIUS = 1.40
 
-
-local tpIsDebugModeEnabled
 local tpExtractTreeNameFromHierarchy
 
 local function tpLog(message)
 end
-
-tpIsDebugModeEnabled = function()
-    return false
-end
-
--- Für Module in separaten Dateien zugänglich machen (Lua-locals sind
--- sonst nur innerhalb dieser Datei sichtbar).
-MapObjectFinder.tpLog = tpLog
-MapObjectFinder.tpIsDebugModeEnabled = tpIsDebugModeEnabled
-
 
 local function tpText(key, fallback)
     if g_i18n ~= nil and g_i18n.getText ~= nil then
@@ -83,7 +64,6 @@ local function tpValueIsWorldPosition(x, y, z)
         and math.abs(y) < 100000
         and math.abs(z) < 100000
 end
-
 
 local function tpExtractFileBaseName(filename)
     local value = tostring(filename or "")
@@ -132,90 +112,6 @@ function MapObjectFinder:tpDecoratePipetteResultNames(items)
     end
 end
 
-
-function MapObjectFinder:tpFormatConstructionMenuDebugLabel(item, categoryIndex, tabIndex, itemIndex)
-    if type(item) ~= "table" then
-        return nil
-    end
-
-    local brushParts = {}
-    if type(item.brushParameters) == "table" then
-        for i, value in ipairs(item.brushParameters) do
-            table.insert(brushParts, tostring(value))
-        end
-    elseif type(item.storeItem) == "table" and type(item.storeItem.brush) == "table" and type(item.storeItem.brush.parameters) == "table" then
-        for i, value in ipairs(item.storeItem.brush.parameters) do
-            table.insert(brushParts, tostring(value))
-        end
-    end
-
-    local brushText = table.concat(brushParts, "|")
-    local imageBase = tpExtractFileBaseName(item.imageFilename or (type(item.storeItem) == "table" and item.storeItem.imageFilename or "") or "")
-    local xmlBase = tpExtractFileBaseName(item.xmlFilename or item.filename or item.configFileName or (type(item.storeItem) == "table" and item.storeItem.xmlFilename or "") or "")
-    local overlay = tostring(item.terrainOverlayLayer or item.overlayLayer or item.terrainLayer or "")
-
-    local details = {}
-    if brushText ~= "" then
-        table.insert(details, brushText)
-    end
-    if overlay ~= "" and overlay ~= brushText then
-        table.insert(details, "ov=" .. overlay)
-    end
-    if imageBase ~= "" then
-        table.insert(details, imageBase)
-    end
-    if xmlBase ~= "" and xmlBase ~= imageBase then
-        table.insert(details, xmlBase)
-    end
-
-    if #details == 0 then
-        return nil
-    end
-
-    return string.format("%s [C%s/T%s/I%s | %s]", tostring(item.tpPipetteMenuOriginalName or item.name or item.title or "?"), tostring(categoryIndex or "-"), tostring(tabIndex or "-"), tostring(itemIndex or "-"), table.concat(details, " | "))
-end
-
-function MapObjectFinder:tpExposeConstructionInternalNames(screen)
-    screen = screen or self:tpResolveConstructionLogicScreen()
-    if type(screen) ~= "table" or type(screen.items) ~= "table" then
-        return
-    end
-
-    local changed = 0
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    for itemIndex, item in ipairs(tabItems) do
-                        if type(item) == "table" then
-                            local hasBrush = type(item.brushParameters) == "table" or (type(item.storeItem) == "table" and type(item.storeItem.brush) == "table")
-                            if hasBrush then
-                                if item.tpPipetteMenuOriginalName == nil then
-                                    item.tpPipetteMenuOriginalName = tostring(item.name or item.title or "?")
-                                    item.tpPipetteMenuOriginalTitle = item.title
-                                end
-                                local debugLabel = self:tpFormatConstructionMenuDebugLabel(item, categoryIndex, tabIndex, itemIndex)
-                                if debugLabel ~= nil then
-                                    if item.name ~= debugLabel then
-                                        item.name = debugLabel
-                                        item.title = debugLabel
-                                        changed = changed + 1
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    if changed > 0 and self.tpLastInternalNameExposeLogCount ~= changed then
-        self.tpLastInternalNameExposeLogCount = changed
-        tpLog("constructionMenuInternalNamesVisible changed=" .. tostring(changed))
-    end
-end
-
 function MapObjectFinder:loadMap()
     self.mouseX = 0.5
     self.mouseY = 0.5
@@ -236,8 +132,6 @@ function MapObjectFinder:loadMap()
     self.lastPipetteWorldX = nil
     self.lastPipetteWorldY = nil
     self.lastPipetteWorldZ = nil
-    self.tpDebugOverlayLines = {}
-    self.tpDebugLastClickTime = 0
     self.tpFoliageStructureLogged = false
     self.tpConstructionStructureLogged = false
     self.tpFoliageFunctionAvailabilityLogged = false
@@ -246,7 +140,6 @@ function MapObjectFinder:loadMap()
     self:tpRegisterConstructionCategory()
     self:tpInstallShowDialogSuppressionHook()
 end
-
 
 function MapObjectFinder:tpGetConstructionIconUVs()
     if GuiUtils ~= nil and GuiUtils.getUVs ~= nil then
@@ -330,7 +223,6 @@ function MapObjectFinder:tpEnsurePipetteResultItemSlot(screen)
 
     return true
 end
-
 
 local function tpPipetteAppendRebuildData(self)
     if MapObjectFinder ~= nil then
@@ -593,9 +485,7 @@ function MapObjectFinder:tpRefreshPipetteResultItems(screen)
     if self:tpIsPipetteResultTabActive(screen)
         and screen.itemList ~= nil
         and screen.itemList.reloadData ~= nil then
-        pcall(function()
-            screen.itemList:reloadData()
-        end)
+        screen.itemList:reloadData()
     end
 
     return true
@@ -609,10 +499,6 @@ local function tpNormalizeSearchText(text)
     return string.lower(tostring(text))
 end
 
--- Bewertet, wie gut ein einzelnes Suchwort zu einem Textfeld passt.
--- Bewusst ohne Tippfehler-Toleranz gehalten (nur Teilwort-Suche +
--- Relevanz-Sortierung, wie besprochen) - dadurch bleiben Treffer
--- nachvollziehbar statt "geraten".
 local function tpSearchWordScore(word, field)
     if word == "" or field == "" then
         return 0
@@ -638,10 +524,6 @@ local function tpSearchWordScore(word, field)
     return 0
 end
 
--- Kleine, bewusst kompakte Alias-Tabelle: Sammelbegriff -> Liste von
--- Textfragmenten, die im INTERNEN (nicht-lokalisierten) Kategorie-
--- oder Tab-Namen gesucht werden. Bewusst klein gehalten und leicht
--- um weitere Begriffe erweiterbar (einfach eine Zeile ergänzen).
 local TP_SEARCH_CATEGORY_ALIASES = {
     ["stall"] = { "husbandry", "animal" },
     ["ställe"] = { "husbandry", "animal" },
@@ -699,14 +581,6 @@ function MapObjectFinder:tpInvalidateSearchIndex(screen)
     end
 end
 
--- Kleine, bewusst überschaubare Alias-Tabelle für Sammelbegriffe,
--- die sich technisch zuverlässig erkennen lassen (nicht nur über
--- den Namenstext). Aktuell: "Baum" erkennt alle Objekte, deren
--- StoreItem ein treeType/treeSaplingType-Feld trägt - genau das
--- Merkmal, das unsere eigene Baumerkennung an anderer Stelle im
--- Code bereits nutzt. (species NICHT verwenden - das ist ein
--- generisches StoreItem-Klassifikationsfeld, das praktisch jedes
--- Item trägt, nicht nur Bäume.)
 local TP_SEARCH_CONCEPT_ALIASES = {
     ["baum"] = "tree",
     ["bäume"] = "tree",
@@ -752,9 +626,6 @@ function MapObjectFinder:tpGetSearchItemDisplayName(item)
     )
 end
 
--- Baut eine flache, durchsuchbare Liste aus allen Baumenü-Kategorien
--- auf, mit Ausnahme der eigenen Pipette-Kategorie (die soll nicht
--- sich selbst durchsuchen).
 function MapObjectFinder:tpBuildSearchIndex(screen)
     local index = {}
 
@@ -817,10 +688,6 @@ function MapObjectFinder:tpBuildSearchIndex(screen)
     return index
 end
 
--- Führt die eigentliche Suche aus: jedes eingegebene Wort muss
--- irgendwo (Name, Kategorie oder Tab) vorkommen, Reihenfolge
--- spielt keine Rolle. Ergebnisse werden nach Relevanz-Summe
--- sortiert (bei Gleichstand alphabetisch, für stabile Reihenfolge).
 function MapObjectFinder:tpPerformSearch(screen, queryText)
     local state = self:tpGetSearchState(screen)
     if state == nil then
@@ -925,9 +792,7 @@ function MapObjectFinder:tpApplySearchResults(screen, resultItems)
     if isActive
         and screen.itemList ~= nil
         and screen.itemList.reloadData ~= nil then
-        pcall(function()
-            screen.itemList:reloadData()
-        end)
+        screen.itemList:reloadData()
         reloaded = true
     end
 
@@ -952,7 +817,6 @@ function MapObjectFinder:tpOnSearchTextChanged(screen, text)
         uiState.searchPlaceholder:setVisible(tostring(text or "") == "")
     end
 end
-
 
 function MapObjectFinder:tpUpdatePipetteResultArea()
     if not self:isConstructionScreenOpen() then
@@ -989,14 +853,10 @@ function MapObjectFinder:tpSetConstructionSelectorBrush(screen)
         and g_constructionBrushTypeManager ~= nil
         and type(g_constructionBrushTypeManager.getClassObjectByTypeName) == "function"
         and screen.cursor ~= nil then
-        local ok, class = pcall(function()
-            return g_constructionBrushTypeManager:getClassObjectByTypeName("select")
-        end)
-        if ok and class ~= nil and type(class.new) == "function" then
-            local createdOk, createdBrush = pcall(function()
-                return class.new(nil, screen.cursor)
-            end)
-            if createdOk and createdBrush ~= nil then
+        local class = g_constructionBrushTypeManager:getClassObjectByTypeName("select")
+        if class ~= nil and type(class.new) == "function" then
+            local createdBrush = class.new(nil, screen.cursor)
+            if createdBrush ~= nil then
                 selectorBrush = createdBrush
                 screen.selectorBrush = createdBrush
             end
@@ -1004,10 +864,8 @@ function MapObjectFinder:tpSetConstructionSelectorBrush(screen)
     end
 
     if selectorBrush ~= nil then
-        local ok = pcall(function()
-            screen:setBrush(selectorBrush, true)
-        end)
-        return ok == true
+        screen:setBrush(selectorBrush, true)
+        return true
     end
 
     return false
@@ -1044,7 +902,6 @@ function ConstructionScreen:onPtpPipetteActivateButtonClick()
     end
 end
 
-
 function ConstructionScreen:onTpSearchTextChanged(element, text)
     if MapObjectFinder == nil then
         return
@@ -1052,7 +909,6 @@ function ConstructionScreen:onTpSearchTextChanged(element, text)
 
     MapObjectFinder:tpOnSearchTextChanged(self, text)
 end
-
 
 local function tpAfterConstructionScreenClose(screen, ...)
     if MapObjectFinder == nil then
@@ -1081,18 +937,12 @@ local function tpAfterConstructionTabOrCategoryChanged(screen, ...)
 
     local currentText = ""
     if uiState ~= nil and uiState.searchInput ~= nil and uiState.searchInput.getText ~= nil then
-        local ok, text = pcall(function()
-            return uiState.searchInput:getText()
-        end)
-        if ok and text ~= nil then
+        local text = uiState.searchInput:getText()
+        if text ~= nil then
             currentText = text
         end
     end
 
-    -- Erzwingt einen Refresh der Kachel-Ansicht beim Betreten des
-    -- Such-Tabs, damit dort nicht der alte Inhalt des zuvor
-    -- besuchten Tabs stehen bleibt (z.B. Produktion), solange
-    -- noch nichts eingetippt wurde.
     MapObjectFinder:tpOnSearchTextChanged(screen, currentText)
 
     if uiState == nil or uiState.searchInput == nil then
@@ -1100,9 +950,7 @@ local function tpAfterConstructionTabOrCategoryChanged(screen, ...)
     end
 
     if uiState.searchInput.setFocus ~= nil then
-        pcall(function()
-            uiState.searchInput:setFocus()
-        end)
+        uiState.searchInput:setFocus()
     end
 end
 
@@ -1113,7 +961,6 @@ end
 if ConstructionScreen ~= nil and ConstructionScreen.setCurrentTab ~= nil then
     ConstructionScreen.setCurrentTab = Utils.appendedFunction(ConstructionScreen.setCurrentTab, tpAfterConstructionTabOrCategoryChanged)
 end
-
 
 function MapObjectFinder:mouseEvent(posX, posY, isDown, isUp, button)
     if type(posX) == "number" then
@@ -1254,81 +1101,6 @@ function MapObjectFinder:tpTrackActiveConstructionSelection(context, force)
         tabIndex = tabIndex
     }
 
-    if item.tpMapOnlyFoliage == true and tpIsDebugModeEnabled() == true then
-        local storeBrush = "<none>"
-        if type(item.storeItem) == "table" and type(item.storeItem.brush) == "table" and type(item.storeItem.brush.parameters) == "table" then
-            storeBrush = table.concat(item.storeItem.brush.parameters, "|")
-        end
-
-        local activeLayer = "<none>"
-        local activePaintState = "<nil>"
-        local activeFoliageState = "<nil>"
-        local activePlane = "<nil>"
-        if type(screen) == "table" and type(screen.brush) == "table" then
-            if type(screen.brush.foliagePaint) == "table" then
-                activeLayer = tostring(screen.brush.foliagePaint.layerName or "<none>")
-                activePaintState = tostring(screen.brush.foliagePaint.state or "<nil>")
-                activePlane = tostring(screen.brush.foliagePaint.terrainDataPlaneId or "<nil>")
-            end
-            activeFoliageState = tostring(screen.brush.foliageState or "<nil>")
-        end
-
-        local wantedLayer = tostring(item.tpMapOnlyFoliageLayer or "")
-        local wantedState = tostring(item.tpMapOnlyFoliageState or "")
-        local activeAccepted = (activeLayer == wantedLayer and activeFoliageState == wantedState)
-        local selectionLogKey = table.concat({
-            tostring(context or "selection"), wantedLayer, wantedState, tostring(brushParameter or ""),
-            tostring(storeBrush), tostring(categoryIndex or "-"), tostring(tabIndex or "-"), tostring(index or "-"),
-            activeLayer, activeFoliageState, activePaintState, activePlane
-        }, "|")
-
-        if force == true or self.tpLastMapFoliageSelectionLogKey ~= selectionLogKey then
-            tpLog(string.format(
-                "mapFoliageSelection context=%s layer=%s state=%s brush=%s storeBrush=%s activeLayer=%s activeFoliageState=%s activePaintState=%s activePlane=%s accepted=%s cat=%s tab=%s item=%s",
-                tostring(context or "selection"),
-                tostring(item.tpMapOnlyFoliageLayer or "<nil>"),
-                tostring(item.tpMapOnlyFoliageState or "<nil>"),
-                tostring(brushParameter or ""),
-                tostring(storeBrush),
-                tostring(activeLayer),
-                tostring(activeFoliageState),
-                tostring(activePaintState),
-                tostring(activePlane),
-                tostring(activeAccepted),
-                tostring(categoryIndex or "-"),
-                tostring(tabIndex or "-"),
-                tostring(index or "-")
-            ))
-            self.tpLastMapFoliageSelectionLogKey = selectionLogKey
-
-            if tostring(context or "") == "update" then
-                if activeAccepted == true then
-                    tpShowMessage("Karten-Foliage gewählt: Brush übernommen.")
-                else
-                    tpShowMessage("Karten-Foliage gewählt.")
-                end
-            end
-        end
-
-        self.tpLastMapFoliageItem = {
-            context = tostring(context or "selection"),
-            layer = tostring(item.tpMapOnlyFoliageLayer or ""),
-            state = tostring(item.tpMapOnlyFoliageState or ""),
-            brush = tostring(brushParameter or ""),
-            storeBrush = tostring(storeBrush),
-            activeLayer = tostring(activeLayer),
-            activeFoliageState = tostring(activeFoliageState),
-            activePaintState = tostring(activePaintState),
-            activePlane = tostring(activePlane),
-            activeAccepted = activeAccepted,
-            label = label,
-            name = itemName,
-            categoryIndex = categoryIndex,
-            tabIndex = tabIndex,
-            itemIndex = index
-        }
-    end
-
     if tostring(context or "") == "worldClickMaybePaint" then
         self.tpLastPaintedConstructionSelectionSnapshot = self.tpLastConstructionSelectionSnapshot
 
@@ -1346,270 +1118,15 @@ function MapObjectFinder:tpTrackActiveConstructionSelection(context, force)
     return self.tpLastConstructionSelectionSnapshot
 end
 
-
-function MapObjectFinder:tpInstallConstructionInteractionTrace()
-    if TP_HEAVY_DIAGNOSTICS ~= true then
-        return
-    end
-
-    if self.tpConstructionInteractionTraceInstalled == true then
-        return
-    end
-
-    local tpSelf = self
-
-    local function valueToShortString(value)
-        local valueType = type(value)
-        if value == nil then
-            return "<nil>"
-        elseif valueType == "string" then
-            return value
-        elseif valueType == "number" or valueType == "boolean" then
-            return tostring(value)
-        elseif valueType == "table" then
-            local keys = {}
-            local count = 0
-            for key, _ in pairs(value) do
-                count = count + 1
-                if count <= 12 then
-                    table.insert(keys, tostring(key))
-                end
-            end
-            table.sort(keys)
-
-            local detailParts = {}
-            for _, detailKey in ipairs({
-                "layerName", "state", "id", "terrainDataPlaneId", "startStateChannel", "numStateChannels",
-                "uniqueIndex", "name", "title", "price", "imageFilename", "xmlFilename", "filename"
-            }) do
-                local detailValue = value[detailKey]
-                if detailValue ~= nil and type(detailValue) ~= "table" then
-                    table.insert(detailParts, tostring(detailKey) .. "=" .. tostring(detailValue))
-                end
-            end
-
-            if #detailParts > 0 then
-                return "table:" .. tostring(value) .. " details={" .. table.concat(detailParts, ",") .. "} keys=" .. table.concat(keys, ",")
-            end
-
-            return "table:" .. tostring(value) .. " keys=" .. table.concat(keys, ",")
-        end
-        return tostring(value)
-    end
-
-    local function describeFoliagePaint(paint)
-        if type(paint) ~= "table" then
-            return tostring(paint)
-        end
-
-        local parts = {}
-        for _, key in ipairs({
-            "layerName", "state", "id", "terrainDataPlaneId", "startStateChannel", "numStateChannels"
-        }) do
-            table.insert(parts, tostring(key) .. "=" .. tostring(paint[key]))
-        end
-
-        return table.concat(parts, ",")
-    end
-
-    local function formatArgs(...)
-        local parts = {}
-        local count = select("#", ...)
-        for index = 1, count do
-            table.insert(parts, tostring(index) .. "=" .. valueToShortString(select(index, ...)))
-        end
-        return table.concat(parts, " ; ")
-    end
-
-    local function formatReturns(values)
-        local parts = {}
-        for index, value in ipairs(values or {}) do
-            table.insert(parts, tostring(index) .. "=" .. valueToShortString(value))
-        end
-        if #parts == 0 then
-            return "<none>"
-        end
-        return table.concat(parts, " ; ")
-    end
-
-    local function describeItem(item)
-        if type(item) ~= "table" then
-            return "<noItem>"
-        end
-
-        local brush = ""
-        if type(item.brushParameters) == "table" then
-            brush = table.concat(item.brushParameters, "|")
-        end
-
-        return string.format(
-            "name=%s title=%s brush=%s image=%s xml=%s price=%s uniqueIndex=%s brushClass=%s",
-            tostring(item.name or "<nil>"),
-            tostring(item.title or "<nil>"),
-            tostring(brush),
-            tostring(item.imageFilename or "<nil>"),
-            tostring(item.xmlFilename or item.filename or item.configFileName or "<nil>"),
-            tostring(item.price or "<nil>"),
-            tostring(item.uniqueIndex or "<nil>"),
-            tostring(item.brushClass or "<nil>")
-        )
-    end
-
-    local function traceScreenState(screen, context)
-        if type(screen) ~= "table" then
-            return
-        end
-
-        local item, index, categoryIndex, tabIndex = tpSelf:tpGetCurrentConstructionSelectedItem(screen)
-        tpLog(string.format(
-            "constructionInteractionScreen context=%s currentCategory=%s currentTab=%s selected=%s selectedIndex=%s itemIndex=%s itemCat=%s itemTab=%s item=%s",
-            tostring(context),
-            tostring(screen.currentCategory),
-            tostring(screen.currentTab),
-            tostring(screen.selected),
-            tostring(screen.itemList ~= nil and screen.itemList.selectedIndex or "<nil>"),
-            tostring(index),
-            tostring(categoryIndex),
-            tostring(tabIndex),
-            describeItem(item)
-        ))
-    end
-
-    local function traceBrushState(brush, context)
-        if type(brush) ~= "table" then
-            return
-        end
-
-        local parts = {}
-        for key, value in pairs(brush) do
-            local lower = string.lower(tostring(key))
-            if string.find(lower, "foliage", 1, true) ~= nil
-                or string.find(lower, "brush", 1, true) ~= nil
-                or string.find(lower, "state", 1, true) ~= nil
-                or string.find(lower, "type", 1, true) ~= nil
-                or string.find(lower, "density", 1, true) ~= nil
-                or string.find(lower, "layer", 1, true) ~= nil
-                or string.find(lower, "parameter", 1, true) ~= nil
-                or string.find(lower, "item", 1, true) ~= nil then
-                table.insert(parts, tostring(key) .. "=" .. valueToShortString(value))
-            end
-        end
-        table.sort(parts)
-        tpLog("constructionInteractionBrush context=" .. tostring(context) .. " " .. table.concat(parts, " ; "))
-
-        if type(brush.foliagePaint) == "table" then
-            tpLog("constructionInteractionFoliagePaint context=" .. tostring(context) .. " " .. describeFoliagePaint(brush.foliagePaint))
-        end
-
-        if type(brush.storeItem) == "table" then
-            tpLog("constructionInteractionStoreItem context=" .. tostring(context) .. " " .. describeItem(brush.storeItem))
-            if type(brush.storeItem.brush) == "table" then
-                local brushParts = {}
-                for _, key in ipairs({"type", "category", "tab"}) do
-                    if brush.storeItem.brush[key] ~= nil then
-                        table.insert(brushParts, tostring(key) .. "=" .. tostring(brush.storeItem.brush[key]))
-                    end
-                end
-                tpLog("constructionInteractionStoreItemBrush context=" .. tostring(context) .. " " .. table.concat(brushParts, ","))
-                if type(brush.storeItem.brush.parameters) == "table" then
-                    local parameterParts = {}
-                    for i, value in ipairs(brush.storeItem.brush.parameters) do
-                        table.insert(parameterParts, tostring(i) .. "=" .. tostring(value) .. "(" .. type(value) .. ")")
-                    end
-                    tpLog("constructionInteractionStoreItemBrushParameters context=" .. tostring(context) .. " values=" .. table.concat(parameterParts, " ; "))
-                else
-                    tpLog("constructionInteractionStoreItemBrushParameters context=" .. tostring(context) .. " type=" .. tostring(type(brush.storeItem.brush.parameters)) .. " value=" .. tostring(brush.storeItem.brush.parameters))
-                end
-            end
-        end
-    end
-
-    local function wrapFunction(ownerLabel, ownerTable, fnName, traceKind)
-        if type(ownerTable) ~= "table" then
-            return
-        end
-
-        local original = ownerTable[fnName]
-        if type(original) ~= "function" then
-            return
-        end
-
-        local originalKey = "__tpOriginal_" .. tostring(fnName)
-        if ownerTable[originalKey] ~= nil then
-            return
-        end
-
-        ownerTable[originalKey] = original
-        ownerTable[fnName] = function(...)
-            tpLog("constructionInteractionCall before owner=" .. tostring(ownerLabel) .. " fn=" .. tostring(fnName) .. " args=" .. formatArgs(...))
-            local firstArg = select(1, ...)
-            if traceKind == "screen" then
-                traceScreenState(firstArg, "before_" .. tostring(fnName))
-            elseif traceKind == "brush" then
-                traceBrushState(firstArg, "before_" .. tostring(fnName))
-            end
-
-            local results = {pcall(original, ...)}
-            local ok = table.remove(results, 1)
-            if ok ~= true then
-                tpLog("constructionInteractionCall error owner=" .. tostring(ownerLabel) .. " fn=" .. tostring(fnName) .. " error=" .. tostring(results[1]))
-                error(results[1])
-            end
-
-            if traceKind == "screen" then
-                traceScreenState(firstArg, "after_" .. tostring(fnName))
-            elseif traceKind == "brush" then
-                traceBrushState(firstArg, "after_" .. tostring(fnName))
-            end
-            tpLog("constructionInteractionCall after owner=" .. tostring(ownerLabel) .. " fn=" .. tostring(fnName) .. " returns=" .. formatReturns(results))
-
-            return unpack(results)
-        end
-        tpLog("constructionInteractionHooked owner=" .. tostring(ownerLabel) .. " fn=" .. tostring(fnName))
-    end
-
-    local foliageBrushClass = _G ~= nil and _G.ConstructionBrushFoliage or nil
-    if type(foliageBrushClass) == "table" then
-        for _, fnName in ipairs({"setParameters", "setFoliageType", "activate", "copyState", "onButtonPrimary", "performBrush", "update", "deactivate"}) do
-            wrapFunction("ConstructionBrushFoliage", foliageBrushClass, fnName, "brush")
-        end
-    end
-
-    local screen = self:tpResolveConstructionLogicScreen()
-    if type(screen) == "table" then
-        local mt = getmetatable(screen)
-        if type(mt) == "table" then
-            for _, fnName in ipairs({"onClickItem", "onListSelectionChanged", "setBrush", "setCurrentCategory", "setCurrentTab", "updateMenuState", "refreshDetails", "populateCellForItemInSection"}) do
-                wrapFunction("ConstructionScreenMeta", mt, fnName, "screen")
-            end
-        end
-
-        for _, fnName in ipairs({"onClickItem", "onListSelectionChanged", "setBrush", "setCurrentCategory", "setCurrentTab", "updateMenuState", "refreshDetails", "populateCellForItemInSection"}) do
-            wrapFunction("ConstructionScreen", screen, fnName, "screen")
-        end
-    end
-
-    self.tpConstructionInteractionTraceInstalled = true
-    tpLog("constructionInteractionTraceInstalled=true")
-end
-
-
 function MapObjectFinder:tpTrackManualPipetteSelection()
 end
 
 function MapObjectFinder:update(dt)
     self:tpInstallShowDialogSuppressionHook()
-    if TP_HEAVY_DIAGNOSTICS == true then
-        self:tpInstallConstructionInteractionTrace()
-    end
     self:tpClearExpiredObjectInfoDialogSuppression()
     self:updatePersistentArmedStatus()
     self:tpUpdatePipetteResultArea()
-    if tpIsDebugModeEnabled() == true then
-        self:tpExposeConstructionInternalNames()
-    else
-        self:tpRestorePipetteDecoratedNames()
-    end
+    self:tpRestorePipetteDecoratedNames()
     self:tpTrackActiveConstructionSelection("update")
     self:tpTrackManualPipetteSelection()
 end
@@ -1710,7 +1227,6 @@ function MapObjectFinder:tpResolveConstructionLogicScreen()
 
     return bestCandidate, nil, bestScore
 end
-
 
 function MapObjectFinder:tpCollectCurrentPaintTabCandidates()
     local screen = self:tpResolveConstructionLogicScreen()
@@ -1850,9 +1366,9 @@ function MapObjectFinder:tpGetRaycastHitNodeLabel()
         return "object"
     end
 
-    if getName ~= nil then
-        local ok, name = pcall(getName, nodeId)
-        if ok == true and name ~= nil and tostring(name) ~= "" then
+    if getName ~= nil and entityExists(nodeId) then
+        local name = getName(nodeId)
+        if name ~= nil and tostring(name) ~= "" then
             return tostring(name)
         end
     end
@@ -1871,7 +1387,6 @@ local function tpCleanPanelObjectLabel(value)
     return text
 end
 
-
 function MapObjectFinder:tpBuildRaycastHitNodeHierarchyLabel()
     local nodeId = nil
     if type(self.raycastHit) == "table" then
@@ -1888,29 +1403,21 @@ function MapObjectFinder:tpBuildRaycastHitNodeHierarchyLabel()
     local current = nodeId
     local visited = {}
     for _ = 1, 12 do
-        if current == nil or current == 0 or visited[current] == true then
+        if current == nil or current == 0 or visited[current] == true or not entityExists(current) then
             break
         end
         visited[current] = true
         local name = nil
         if type(getName) == "function" then
-            local okName, value = pcall(function()
-                return getName(current)
-            end)
-            if okName == true and value ~= nil then
+            local value = getName(current)
+            if value ~= nil then
                 name = tostring(value)
             end
         end
         if name ~= nil and name ~= "" then
             table.insert(parts, 1, name)
         end
-        local okParent, parent = pcall(function()
-            return getParent(current)
-        end)
-        if okParent ~= true then
-            break
-        end
-        current = parent
+        current = getParent(current)
     end
 
     if #parts == 0 then
@@ -2024,10 +1531,8 @@ function MapObjectFinder:tpFindConstructionDisplayItemForStoreItem(screen, store
     return nil, "notFound"
 end
 
-
 function MapObjectFinder:tpResetLayerMenuOutput()
 end
-
 
 local function tpCollectAllStoreItemsSafe()
     local items = {}
@@ -2036,14 +1541,12 @@ local function tpCollectAllStoreItemsSafe()
         return items
     end
 
-    local ok, result = pcall(function()
-        if g_storeManager.getItems ~= nil then
-            return g_storeManager:getItems()
-        end
-        return nil
-    end)
+    local result = nil
+    if g_storeManager.getItems ~= nil then
+        result = g_storeManager:getItems()
+    end
 
-    if ok and type(result) == "table" then
+    if type(result) == "table" then
         for _, item in ipairs(result) do
             table.insert(items, item)
         end
@@ -2058,11 +1561,6 @@ local function tpCollectAllStoreItemsSafe()
     return items
 end
 
--- Rückfallebene fuer StoreItems, deren xmlFilename sich nur in Schreibweise
--- oder Slash-Richtung vom Pfad des platzierten Objekts unterscheidet.
--- Das kann bei neuen Prefab-/Kartenvorlagen auftreten, bei denen der
--- registrierte Store-Pfad nicht exakt dem Pfad entspricht, den das
--- platzierte Objekt zur Laufzeit meldet.
 function MapObjectFinder:tpFindStoreItemByFilenameFallback(xmlFilename)
     local wanted = tpNormalizeComparableFilename(xmlFilename)
     if wanted == nil then
@@ -2093,11 +1591,9 @@ function MapObjectFinder:tpResolveStoreItemFromPlaceableObject(object)
         return nil, nil
     end
 
-    local ok, storeItem = pcall(function()
-        return g_storeManager:getItemByXMLFilename(xmlFilename)
-    end)
+    local storeItem = g_storeManager:getItemByXMLFilename(xmlFilename)
 
-    if ok and storeItem ~= nil then
+    if storeItem ~= nil then
         return storeItem, xmlFilename
     end
 
@@ -2106,11 +1602,8 @@ function MapObjectFinder:tpResolveStoreItemFromPlaceableObject(object)
         return fallbackItem, xmlFilename
     end
 
-    print(string.format("[TexturePipette] StoreItem nicht gefunden fuer xmlFilename=%s", tostring(xmlFilename)))
-
     return nil, xmlFilename
 end
-
 
 function MapObjectFinder:tpCollectPlaceableDisplayItemFromObject(object, screen, sourceLabel)
     if object == nil then
@@ -2125,24 +1618,7 @@ function MapObjectFinder:tpCollectPlaceableDisplayItemFromObject(object, screen,
     screen = screen or self:tpResolveConstructionLogicScreen()
     local displayItem, displayResolveMode = self:tpFindConstructionDisplayItemForStoreItem(screen, storeItem, xmlFilename)
     if displayItem == nil then
-        if tpIsDebugModeEnabled() == true then
-            local storeName = tostring(storeItem.name or storeItem.customEnvironment or storeItem.xmlFilename or xmlFilename or "Object")
-            tpLog("placeablePick noDisplayItem name=" .. storeName .. " mode=" .. tostring(displayResolveMode) .. " source=" .. tostring(sourceLabel or "direct"))
-        end
         return nil
-    end
-
-    if tpIsDebugModeEnabled() == true then
-        local displayStoreItem = type(displayItem.storeItem) == "table" and displayItem.storeItem or storeItem
-        local storeName = tostring(
-            displayItem.name
-            or (displayStoreItem ~= nil and displayStoreItem.name)
-            or storeItem.name
-            or storeItem.customEnvironment
-            or storeItem.xmlFilename
-            or "Object"
-        )
-        tpLog("placeablePick displayItemAccepted name=" .. storeName .. " mode=" .. tostring(displayResolveMode) .. " source=" .. tostring(sourceLabel or "direct"))
     end
 
     return displayItem
@@ -2182,19 +1658,13 @@ function MapObjectFinder:tpCollectPlaceableObjectsNearWorldPosition(x, y, z)
     local scanY = y + 0.75
     local mask = 4294967295
 
-    local okScan, scanError = pcall(function()
-        overlapSphere(x, scanY, z, radius, "tpOnPlaceableNearbyShapeDetected", self, mask, false, false, true, false)
-    end)
+    overlapSphere(x, scanY, z, radius, "tpOnPlaceableNearbyShapeDetected", self, mask, false, false, true, false)
 
     local rawShapes = self.tpPlaceableNearbyShapes or {}
     self.tpPlaceableNearbyShapes = nil
     self.tpPlaceableNearbySeen = nil
 
-    if tpIsDebugModeEnabled() == true then
-        tpLog("placeableNearbyScan ok=" .. tostring(okScan) .. " hits=" .. tostring(#rawShapes) .. " radius=" .. tostring(radius) .. " error=" .. tostring(scanError))
-    end
-
-    if okScan ~= true or #rawShapes == 0 then
+    if #rawShapes == 0 then
         return results
     end
 
@@ -2205,7 +1675,7 @@ function MapObjectFinder:tpCollectPlaceableObjectsNearWorldPosition(x, y, z)
         local visited = {}
 
         for _ = 1, 16 do
-            if currentNode == nil or currentNode == 0 or visited[currentNode] == true then
+            if currentNode == nil or currentNode == 0 or visited[currentNode] == true or not entityExists(currentNode) then
                 break
             end
             visited[currentNode] = true
@@ -2225,13 +1695,7 @@ function MapObjectFinder:tpCollectPlaceableObjectsNearWorldPosition(x, y, z)
                 break
             end
 
-            local okParent, parent = pcall(function()
-                return getParent(currentNode)
-            end)
-            if okParent ~= true then
-                break
-            end
-            currentNode = parent
+            currentNode = getParent(currentNode)
         end
     end
 
@@ -2289,8 +1753,6 @@ function MapObjectFinder:tpCollectPlaceableDisplayItemsAtCurrentRaycast(screen)
     return resultItems
 end
 
-
-
 function MapObjectFinder:findMouseWorldPosition()
     if unProject == nil then
         return nil
@@ -2325,23 +1787,17 @@ function MapObjectFinder:findMouseWorldPosition()
 
     self.raycastHit = nil
 
-    local ok, numHits = pcall(function()
-        return raycastClosest(
-            nearX,
-            nearY,
-            nearZ,
-            dx,
-            dy,
-            dz,
-            10000,
-            "raycastClosestCallback",
-            self
-        )
-    end)
-
-    if not ok then
-        return nil
-    end
+    raycastClosest(
+        nearX,
+        nearY,
+        nearZ,
+        dx,
+        dy,
+        dz,
+        10000,
+        "raycastClosestCallback",
+        self
+    )
 
     if self.raycastHit ~= nil then
         return self.raycastHit.x, self.raycastHit.y, self.raycastHit.z
@@ -2357,7 +1813,6 @@ function MapObjectFinder:getTerrainRoot()
 
     return nil
 end
-
 
 function MapObjectFinder:tpRankCandidateMatchesBySubLayerCompetition(candidateMatches, sessionId)
     local x = self.lastPipetteWorldX
@@ -2416,11 +1871,7 @@ function MapObjectFinder:tpRankCandidateMatchesBySubLayerCompetition(candidateMa
 
         if overlayLayer ~= nil then
             for subIndex = 0, 3 do
-                local subOk, subLayerId = pcall(function()
-                    return getTerrainLayerSubLayer(terrainRoot, overlayLayer, subIndex)
-                end)
-
-                local numericSubLayerId = subOk and tonumber(subLayerId) or nil
+                local numericSubLayerId = tonumber(getTerrainLayerSubLayer(terrainRoot, overlayLayer, subIndex))
                 if numericSubLayerId ~= nil and numericSubLayerId >= 0 then
                     local sampleCount = 0
                     local failCount = 0
@@ -2431,17 +1882,15 @@ function MapObjectFinder:tpRankCandidateMatchesBySubLayerCompetition(candidateMa
 
                     for _, dx in ipairs(offsets) do
                         for _, dz in ipairs(offsets) do
-                            local layerOk, layerValue = pcall(function()
-                                return getTerrainLayerAtWorldPos(
-                                    terrainRoot,
-                                    numericSubLayerId,
-                                    (tonumber(x) or 0) + dx,
-                                    tonumber(y) or 0,
-                                    (tonumber(z) or 0) + dz
-                                )
-                            end)
+                            local layerValue = getTerrainLayerAtWorldPos(
+                                terrainRoot,
+                                numericSubLayerId,
+                                (tonumber(x) or 0) + dx,
+                                tonumber(y) or 0,
+                                (tonumber(z) or 0) + dz
+                            )
 
-                            if layerOk then
+                            if layerValue ~= nil then
                                 sampleCount = sampleCount + 1
                                 local numericLayerValue = tonumber(layerValue) or 0
                                 total = total + numericLayerValue
@@ -2481,8 +1930,6 @@ function MapObjectFinder:tpRankCandidateMatchesBySubLayerCompetition(candidateMa
                             tostring(failCount)
                         ))
                     end
-                elseif subOk ~= true then
-                    candidateFailed = true
                 end
             end
         else
@@ -2755,23 +2202,15 @@ function MapObjectFinder:tpTryPreselectFirstPipetteResult(screen)
         return false
     end
 
-    local ok = false
-
     if screen.itemList.setSelectedIndex ~= nil then
-        ok = pcall(function()
-            screen.itemList:setSelectedIndex(1)
-        end)
+        screen.itemList:setSelectedIndex(1)
     elseif screen.itemList.setSelectedItem ~= nil then
-        ok = pcall(function()
-            screen.itemList:setSelectedItem(1)
-        end)
+        screen.itemList:setSelectedItem(1)
     else
-        ok = pcall(function()
-            screen.itemList.selectedIndex = 1
-        end)
+        screen.itemList.selectedIndex = 1
     end
 
-    return ok == true
+    return true
 end
 
 function MapObjectFinder:tpClearPipetteSelection(screen, reason)
@@ -2791,7 +2230,6 @@ function MapObjectFinder:tpClearPipetteSelection(screen, reason)
     end
 
 end
-
 
 function MapObjectFinder:tpFormatDebugValue(value)
     local valueType = type(value)
@@ -2880,243 +2318,6 @@ function MapObjectFinder:tpLogCandidateDeep(label, item, maxKeys)
     end
 end
 
-
-function MapObjectFinder:tpLogFoliageFunctionAvailabilityOnce()
-    if self.tpFoliageFunctionAvailabilityLogged == true then
-        return
-    end
-    self.tpFoliageFunctionAvailabilityLogged = true
-
-    local names = {
-        "getDensityAtWorldPos",
-        "getDensityMapAtWorldPos",
-        "getDensityMapHeightAtWorldPos",
-        "getDensityMapValueAtWorldPos",
-        "getFoliageDensityAtWorldPos",
-        "getFoliageTypeAtWorldPos",
-        "getTerrainSystem",
-        "getDensityMapData",
-        "getTerrainDetailByName",
-        "getTerrainDataPlaneByName",
-        "getTerrainLayerAtWorldPos",
-        "getTerrainLayerSubLayer"
-    }
-
-    local parts = {}
-    for _, name in ipairs(names) do
-        table.insert(parts, name .. "=" .. tostring(type(_G[name])))
-    end
-
-    tpLog("foliageFunctionAvailability " .. table.concat(parts, " "))
-end
-
-function MapObjectFinder:tpLogConstructionStructureOnce(screen)
-    if self.tpConstructionStructureLogged == true then
-        return
-    end
-    self.tpConstructionStructureLogged = true
-
-    screen = screen or self:tpResolveConstructionLogicScreen()
-    if screen == nil or type(screen.items) ~= "table" then
-        tpLog("constructionStructure missing")
-        return
-    end
-
-    local total = 0
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    tpLog(string.format("constructionTab category=%s tab=%s items=%s", tostring(categoryIndex), tostring(tabIndex), tostring(#tabItems)))
-                    for itemIndex, item in ipairs(tabItems) do
-                        if type(item) == "table" then
-                            total = total + 1
-                            local brushParameter = ""
-                            if type(item.brushParameters) == "table" then
-                                brushParameter = table.concat(item.brushParameters, "|")
-                            end
-                            tpLog(string.format(
-                                "constructionItem category=%s tab=%s item=%s name=%s title=%s brush=%s overlay=%s terrainLayer=%s image=%s xml=%s",
-                                tostring(categoryIndex),
-                                tostring(tabIndex),
-                                tostring(itemIndex),
-                                tostring(item.name or "<nil>"),
-                                tostring(item.title or "<nil>"),
-                                tostring(brushParameter),
-                                tostring(item.terrainOverlayLayer or item.overlayLayer or "<nil>"),
-                                tostring(item.terrainLayer or "<nil>"),
-                                tostring(item.imageFilename or "<nil>"),
-                                tostring(item.xmlFilename or item.filename or item.configFileName or "<nil>")
-                            ))
-                            if total <= 100 then
-                                self:tpLogTableKeys(string.format("constructionItemKeys category=%s tab=%s item=%s", tostring(categoryIndex), tostring(tabIndex), tostring(itemIndex)), item, 24)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    tpLog("constructionStructure totalItems=" .. tostring(total))
-end
-
-
-function MapObjectFinder:tpFunctionSourceLabel(fn)
-    if type(fn) ~= "function" or debug == nil or type(debug.getinfo) ~= "function" then
-        return "<no-debug-info>"
-    end
-    local ok, info = pcall(function()
-        return debug.getinfo(fn, "Sln")
-    end)
-    if ok ~= true or type(info) ~= "table" then
-        return "<debug-error>"
-    end
-    return tostring(info.short_src or info.source or "?") .. ":" .. tostring(info.linedefined or "?")
-end
-
-function MapObjectFinder:tpCollectKeys(object, maxKeys)
-    local keys = {}
-    if type(object) == "table" then
-        for key, _ in pairs(object) do
-            table.insert(keys, tostring(key))
-            if #keys >= (maxKeys or 80) then
-                break
-            end
-        end
-    end
-    table.sort(keys)
-    return table.concat(keys, ",")
-end
-
-function MapObjectFinder:tpLogRuntimeObject(label, object, maxKeys)
-    tpLog(label .. " type=" .. tostring(type(object)) .. " value=" .. tostring(object))
-    if type(object) == "table" then
-        tpLog(label .. ".keys=" .. self:tpCollectKeys(object, maxKeys or 80))
-        local mt = getmetatable(object)
-        if mt ~= nil then
-            tpLog(label .. ".metatable=" .. tostring(mt) .. " mtKeys=" .. self:tpCollectKeys(mt, maxKeys or 80))
-            if type(mt.__index) == "table" then
-                tpLog(label .. ".metatable.__indexKeys=" .. self:tpCollectKeys(mt.__index, maxKeys or 120))
-            end
-        end
-    end
-end
-
-function MapObjectFinder:tpLogConstructionBrushRuntime(screen, context)
-    tpLog("constructionBrushRuntimeStart context=" .. tostring(context or "?"))
-    screen = screen or self:tpResolveConstructionLogicScreen()
-    self:tpLogRuntimeObject("constructionScreenRuntime", screen, 120)
-
-    local globals = {}
-    for key, value in pairs(_G or {}) do
-        local name = tostring(key)
-        local lower = string.lower(name)
-        if string.find(lower, "construction", 1, true) ~= nil
-            and (string.find(lower, "brush", 1, true) ~= nil or string.find(lower, "foliage", 1, true) ~= nil or string.find(lower, "tree", 1, true) ~= nil) then
-            table.insert(globals, name .. "=" .. tostring(type(value)))
-        end
-    end
-    table.sort(globals)
-    tpLog("constructionBrushGlobals " .. table.concat(globals, " ; "))
-
-    local globalNames = {
-        "ConstructionBrush",
-        "ConstructionBrushPaint",
-        "ConstructionBrushFoliage",
-        "ConstructionBrushTree",
-        "ConstructionBrushPlaceable",
-        "ConstructionBrushTerrain"
-    }
-    for _, name in ipairs(globalNames) do
-        local object = _G[name]
-        if object ~= nil then
-            self:tpLogRuntimeObject("constructionBrushClass." .. name, object, 160)
-            if type(object) == "table" then
-                for key, value in pairs(object) do
-                    if type(value) == "function" then
-                        tpLog("constructionBrushClassFunction class=" .. name .. " fn=" .. tostring(key) .. " source=" .. self:tpFunctionSourceLabel(value))
-                    end
-                end
-            end
-        end
-    end
-
-    if screen ~= nil then
-        self:tpLogRuntimeObject("constructionScreen.brush", screen.brush, 160)
-        self:tpLogRuntimeObject("constructionScreen.cursor", screen.cursor, 80)
-        self:tpLogRuntimeObject("constructionScreen.itemList", screen.itemList, 80)
-    end
-    tpLog("constructionBrushRuntimeEnd context=" .. tostring(context or "?"))
-end
-
-function MapObjectFinder:tpLogFoliageMenuItemInternals(screen, context)
-    tpLog("foliageMenuItemInternalsStart context=" .. tostring(context or "?"))
-    screen = screen or self:tpResolveConstructionLogicScreen()
-    if screen == nil or type(screen.items) ~= "table" then
-        tpLog("foliageMenuItemInternals missingScreen")
-        return
-    end
-
-    local count = 0
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    for itemIndex, item in ipairs(tabItems) do
-                        local brushText = ""
-                        if type(item) == "table" and type(item.brushParameters) == "table" then
-                            brushText = table.concat(item.brushParameters, "|")
-                        end
-                        local lower = string.lower(brushText .. " " .. tostring(item and item.name or "") .. " " .. tostring(item and item.title or ""))
-                        if type(item) == "table" and (string.find(lower, "bush", 1, true) or string.find(lower, "deco", 1, true) or string.find(lower, "foliage", 1, true) or string.find(lower, "meadow", 1, true)) then
-                            count = count + 1
-                            tpLog(string.format("foliageMenuInternal index=%s cat=%s tab=%s item=%s name=%s brush=%s terrainOverlay=%s terrainLayer=%s class=%s image=%s xml=%s",
-                                tostring(count), tostring(categoryIndex), tostring(tabIndex), tostring(itemIndex), tostring(item.name or item.title or "<nil>"), tostring(brushText), tostring(item.terrainOverlayLayer or item.overlayLayer or "<nil>"), tostring(item.terrainLayer or "<nil>"), tostring(item.className or item.typeName or "<nil>"), tostring(item.imageFilename or "<nil>"), tostring(item.xmlFilename or item.filename or item.configFileName or "<nil>")
-                            ))
-                            self:tpLogRuntimeObject("foliageMenuInternal.item." .. tostring(count), item, 120)
-                            if type(item.brushParameters) == "table" then
-                                self:tpLogRuntimeObject("foliageMenuInternal.item." .. tostring(count) .. ".brushParameters", item.brushParameters, 40)
-                            end
-                            if type(item.storeItem) == "table" then
-                                self:tpLogRuntimeObject("foliageMenuInternal.item." .. tostring(count) .. ".storeItem", item.storeItem, 120)
-                                tpLog(string.format("foliageMenuStoreItemData index=%s name=%s brush=%s uniqueIndex=%s price=%s image=%s xml=%s rawXml=%s category=%s tab=%s species=%s shopHeight=%s",
-                                    tostring(count),
-                                    tostring(item.storeItem.name or item.name or item.title or "<nil>"),
-                                    tostring(brushText),
-                                    tostring(item.uniqueIndex or item.storeItem.uniqueIndex or "<nil>"),
-                                    tostring(item.price or item.storeItem.price or "<nil>"),
-                                    tostring(item.storeItem.imageFilename or item.imageFilename or "<nil>"),
-                                    tostring(item.storeItem.xmlFilename or "<nil>"),
-                                    tostring(item.storeItem.rawXMLFilename or "<nil>"),
-                                    tostring(item.storeItem.categoryName or "<nil>"),
-                                    tostring(type(item.storeItem.brush) == "table" and item.storeItem.brush.tab or "<nil>"),
-                                    tostring(item.storeItem.species or "<nil>"),
-                                    tostring(item.storeItem.shopHeight or "<nil>")
-                                ))
-                                if type(item.storeItem.brush) == "table" then
-                                    self:tpLogRuntimeObject("foliageMenuInternal.item." .. tostring(count) .. ".storeItem.brush", item.storeItem.brush, 120)
-                                    local params = item.storeItem.brush.parameters
-                                    if type(params) == "table" then
-                                        local paramParts = {}
-                                        for paramIndex, paramValue in ipairs(params) do
-                                            table.insert(paramParts, tostring(paramIndex) .. "=" .. tostring(paramValue) .. "(" .. type(paramValue) .. ")")
-                                        end
-                                        tpLog("foliageMenuStoreItemBrushParameters index=" .. tostring(count) .. " values=" .. table.concat(paramParts, ";"))
-                                    else
-                                        tpLog("foliageMenuStoreItemBrushParameters index=" .. tostring(count) .. " type=" .. tostring(type(params)) .. " value=" .. tostring(params))
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    tpLog("foliageMenuItemInternalsEnd count=" .. tostring(count))
-end
-
 function MapObjectFinder:tpExtractNibbleStatesFromDensity(rawValue)
     local states = {}
     local seen = {}
@@ -3189,287 +2390,21 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         end
     end
 
-    if TP_HEAVY_DIAGNOSTICS == true then
-        tpLog("visualFoliageMappingProbeActive=true")
-
-    local function tpSafeString(value)
-        if value == nil then
-            return "<nil>"
-        end
-        return tostring(value)
-    end
-
-    local function tpItemImage(item)
-        if type(item) ~= "table" then
-            return "<nil>"
-        end
-        return tpSafeString(item.imageFilename or item.image or item.iconFilename or item.storeImageFilename or item.filename or item.xmlFilename)
-    end
-
-    local loggedMenuCount = 0
-    for _, candidate in ipairs(foliageItems) do
-        local item = candidate.item
-        local brushParams = ""
-        if type(item) == "table" and type(item.brushParameters) == "table" then
-            brushParams = table.concat(item.brushParameters, "|")
-        end
-        tpLog(string.format(
-            "visualFoliageMenuCandidate index=%s order=%s/%s/%s name=%s layer=%s state=%s brush=%s brushParams=%s image=%s xml=%s filename=%s",
-            tostring(loggedMenuCount + 1),
-            tostring(candidate.categoryIndex or "<nil>"),
-            tostring(candidate.tabIndex or "<nil>"),
-            tostring(candidate.itemIndex or "<nil>"),
-            tostring(candidate.name or "<nil>"),
-            tostring(candidate.layerName or "<nil>"),
-            tostring(candidate.state or "<nil>"),
-            tostring(candidate.brush or "<nil>"),
-            tostring(brushParams),
-            tpSafeString(type(item) == "table" and item.imageFilename or nil),
-            tpSafeString(type(item) == "table" and item.xmlFilename or nil),
-            tpSafeString(type(item) == "table" and item.filename or nil)
-        ))
-        if type(item) == "table" and (string.find(string.lower(tostring(candidate.layerName or "")), "bush", 1, true) ~= nil or loggedMenuCount < 6) then
-            self:tpLogTableKeys("visualFoliageMenuCandidateKeys order=" .. tostring(candidate.categoryIndex) .. "/" .. tostring(candidate.tabIndex) .. "/" .. tostring(candidate.itemIndex), item, 40)
-            if type(item.storeItem) == "table" and type(item.storeItem.brush) == "table" then
-                self:tpLogTableKeys("visualFoliageMenuCandidateStoreBrush order=" .. tostring(candidate.categoryIndex) .. "/" .. tostring(candidate.tabIndex) .. "/" .. tostring(candidate.itemIndex), item.storeItem.brush, 40)
-                if type(item.storeItem.brush.parameters) == "table" then
-                    local parameterParts = {}
-                    for i, value in ipairs(item.storeItem.brush.parameters) do
-                        table.insert(parameterParts, tostring(i) .. "=" .. tostring(value) .. "(" .. type(value) .. ")")
-                    end
-                    tpLog("visualFoliageMenuCandidateStoreBrushParameters order=" .. tostring(candidate.categoryIndex) .. "/" .. tostring(candidate.tabIndex) .. "/" .. tostring(candidate.itemIndex) .. " values=" .. table.concat(parameterParts, " ; "))
-                end
-            end
-        end
-        loggedMenuCount = loggedMenuCount + 1
-        if loggedMenuCount >= 80 then
-            break
-        end
-    end
-
-    self:tpLogTableKeys("visualFoliageSystemKeys", foliageSystem, 60)
-
-    local function logFoliageArray(label, array, maxItems)
-        if type(array) ~= "table" then
-            tpLog(label .. " type=" .. tostring(type(array)))
-            return
-        end
-        local count = 0
-        for index, entry in pairs(array) do
-            count = count + 1
-            local layerName = ""
-            if type(entry) == "table" then
-                layerName = tostring(entry.layerName or entry.foliageLayerName or entry.name or entry.xmlFilename or "")
-            end
-            tpLog(string.format(
-                "%s index=%s layer=%s name=%s id=%s state=%s dataPlane=%s startChannel=%s numChannels=%s type=%s xml=%s filename=%s",
-                label,
-                tostring(index),
-                tostring(layerName),
-                tpSafeString(type(entry) == "table" and entry.name or nil),
-                tpSafeString(type(entry) == "table" and entry.id or nil),
-                tpSafeString(type(entry) == "table" and entry.state or nil),
-                tpSafeString(type(entry) == "table" and entry.terrainDataPlaneId or nil),
-                tpSafeString(type(entry) == "table" and entry.startStateChannel or entry.startChannel or nil),
-                tpSafeString(type(entry) == "table" and entry.numStateChannels or entry.numChannels or nil),
-                tpSafeString(type(entry) == "table" and entry.typeIndex or nil),
-                tpSafeString(type(entry) == "table" and entry.xmlFilename or nil),
-                tpSafeString(type(entry) == "table" and entry.filename or nil)
-            ))
-            if type(entry) == "table" then
-                self:tpLogTableKeys(label .. "Keys index=" .. tostring(index), entry, 50)
-            end
-            if count >= (maxItems or 40) then
-                break
-            end
-        end
-        tpLog(label .. "CountLogged=" .. tostring(count))
-    end
-
-    logFoliageArray("visualPaintableFoliage", foliageSystem.paintableFoliages, 30)
-    logFoliageArray("visualDecoFoliage", foliageSystem.decoFoliages, 60)
-    logFoliageArray("visualDecoFoliageMapping", foliageSystem.decoFoliageMappings, 80)
-
-    local transformLayerSeen = {}
-    local function logTransformForLayer(layerName, source)
-        layerName = tostring(layerName or "")
-        if layerName == "" or transformLayerSeen[layerName] == true then
-            return
-        end
-        transformLayerSeen[layerName] = true
-        local groupId = nil
-        if type(getFoliageTransformGroupIdByFoliageName) == "function" then
-            local ok, value = pcall(function()
-                return getFoliageTransformGroupIdByFoliageName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if ok == true then
-                groupId = value
-            else
-                groupId = "error:" .. tostring(value)
-            end
-        else
-            groupId = "functionMissing"
-        end
-        local planeId = nil
-        local typeIndex = nil
-        if type(getTerrainDataPlaneByName) == "function" and g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local okPlane, planeValue, typeValue = pcall(function()
-                return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if okPlane == true then
-                planeId = tonumber(planeValue)
-                typeIndex = tonumber(typeValue)
-            end
-        end
-
-        local associatedGroupId = nil
-        if planeId ~= nil and tonumber(planeId) ~= nil and tonumber(planeId) > 0 and type(getDataPlaneAssociatedTransformGroup) == "function" then
-            local okAssoc, assocValue = pcall(function()
-                return getDataPlaneAssociatedTransformGroup(planeId)
-            end)
-            if okAssoc == true then
-                associatedGroupId = assocValue
-            else
-                associatedGroupId = "error:" .. tostring(assocValue)
-            end
-        elseif planeId ~= nil and tonumber(planeId) ~= nil and tonumber(planeId) <= 0 then
-            associatedGroupId = "skippedInvalidPlane"
-        end
-
-        tpLog("visualFoliageTransformGroup source=" .. tostring(source or "?") .. " layer=" .. tostring(layerName) .. " groupId=" .. tostring(groupId) .. " planeId=" .. tostring(planeId) .. " typeIndex=" .. tostring(typeIndex) .. " associatedGroupId=" .. tostring(associatedGroupId))
-    end
-
-    for _, candidate in ipairs(foliageItems) do
-        logTransformForLayer(candidate.layerName, "menu")
-    end
-
-    local function tpNodeName(nodeId)
-        if nodeId == nil or tonumber(nodeId) == nil or tonumber(nodeId) <= 0 then
-            return "<nil>"
-        end
-        if type(getName) ~= "function" then
-            return "<getNameMissing>"
-        end
-        local ok, value = pcall(function()
-            return getName(nodeId)
-        end)
-        if ok == true then
-            return tostring(value)
-        end
-        return "error:" .. tostring(value)
-    end
-
-    local function tpChildCount(nodeId)
-        if nodeId == nil or tonumber(nodeId) == nil or tonumber(nodeId) <= 0 then
-            return 0
-        end
-        if type(getNumOfChildren) ~= "function" then
-            return 0
-        end
-        local ok, value = pcall(function()
-            return getNumOfChildren(nodeId)
-        end)
-        if ok == true and tonumber(value) ~= nil then
-            return tonumber(value)
-        end
-        return 0
-    end
-
-    local function tpChildAt(nodeId, index)
-        if nodeId == nil or tonumber(nodeId) == nil or tonumber(nodeId) <= 0 then
-            return nil
-        end
-        if type(getChildAt) ~= "function" then
-            return nil
-        end
-        local ok, value = pcall(function()
-            return getChildAt(nodeId, index)
-        end)
-        if ok == true and tonumber(value) ~= nil then
-            return tonumber(value)
-        end
-        return nil
-    end
-
-    local function tpLogNodeTree(rootNode, label, maxDepth, maxChildren)
-        if rootNode == nil or tonumber(rootNode) == nil or tonumber(rootNode) <= 0 then
-            tpLog("visualFoliageNodeTree label=" .. tostring(label) .. " root=" .. tostring(rootNode) .. " skipped=true")
-            return
-        end
-
-        local visited = {}
-        local function walk(nodeId, depth, path)
-            if nodeId == nil or visited[nodeId] == true or depth > maxDepth then
-                return
-            end
-            visited[nodeId] = true
-            local count = tpChildCount(nodeId)
-            tpLog("visualFoliageNodeTree label=" .. tostring(label) .. " depth=" .. tostring(depth) .. " path=" .. tostring(path) .. " node=" .. tostring(nodeId) .. " name=" .. tpNodeName(nodeId) .. " children=" .. tostring(count))
-            local limit = math.min(count, maxChildren)
-            for childIndex = 0, limit - 1 do
-                local child = tpChildAt(nodeId, childIndex)
-                if child ~= nil then
-                    walk(child, depth + 1, tostring(path) .. "/" .. tostring(childIndex))
-                end
-            end
-            if count > limit then
-                tpLog("visualFoliageNodeTree label=" .. tostring(label) .. " depth=" .. tostring(depth) .. " path=" .. tostring(path) .. " childrenOmitted=" .. tostring(count - limit))
-            end
-        end
-        walk(rootNode, 0, "root")
-    end
-
-    local function tpLogFoliageGroupHierarchy(layerName, label)
-        if type(getFoliageTransformGroupIdByFoliageName) ~= "function" then
-            tpLog("visualFoliageGroupHierarchy layer=" .. tostring(layerName) .. " label=" .. tostring(label) .. " skipped=getFoliageTransformGroupIdByFoliageNameMissing")
-            return
-        end
-        local ok, groupId = pcall(function()
-            return getFoliageTransformGroupIdByFoliageName(g_currentMission.terrainRootNode, layerName)
-        end)
-        if ok ~= true then
-            tpLog("visualFoliageGroupHierarchy layer=" .. tostring(layerName) .. " label=" .. tostring(label) .. " error=" .. tostring(groupId))
-            return
-        end
-        tpLog("visualFoliageGroupHierarchy layer=" .. tostring(layerName) .. " label=" .. tostring(label) .. " groupId=" .. tostring(groupId) .. " groupName=" .. tpNodeName(groupId) .. " childCount=" .. tostring(tpChildCount(groupId)))
-        tpLogNodeTree(groupId, tostring(label) .. ":" .. tostring(layerName), 3, 24)
-    end
-
-    tpLogFoliageGroupHierarchy("decoBush", "activeVisualBushLayer")
-    tpLogFoliageGroupHierarchy("decoBushUS", "menuBushLayer")
-    if type(foliageSystem.paintableFoliages) == "table" then
-        for _, entry in pairs(foliageSystem.paintableFoliages) do
-            if type(entry) == "table" then
-                logTransformForLayer(entry.layerName or entry.foliageLayerName or entry.name, "paintable")
-            end
-        end
-    end
-    if type(foliageSystem.decoFoliages) == "table" then
-        for _, entry in pairs(foliageSystem.decoFoliages) do
-            if type(entry) == "table" then
-                logTransformForLayer(entry.layerName or entry.foliageLayerName or entry.name, "deco")
-            end
-        end
-    end
-    end
-
     local function resolvePlaneId(foliage)
         if type(foliage) ~= "table" then
             return nil
         end
 
         local planeId = tonumber(foliage.terrainDataPlaneId)
-        if planeId ~= nil then
+        if planeId ~= nil and planeId > 0 and entityExists(planeId) then
             return planeId
         end
 
         local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
         if layerName ~= "" and type(getTerrainDataPlaneByName) == "function" and g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local okPlane, plane = pcall(function()
-                return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if okPlane == true and tonumber(plane) ~= nil then
-                return tonumber(plane)
+            local plane = tonumber(getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName))
+            if plane ~= nil and plane > 0 and entityExists(plane) then
+                return plane
             end
         end
 
@@ -3477,52 +2412,28 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
     end
 
     local function sampleDensity(planeId, sampleX, sampleZ)
-        if type(getDensityAtWorldPos) ~= "function" or planeId == nil then
+        if type(getDensityAtWorldPos) ~= "function" or planeId == nil or planeId <= 0 or not entityExists(planeId) then
             return nil
         end
 
-        local okDensity, density = pcall(function()
-            return getDensityAtWorldPos(planeId, sampleX, y or 0, sampleZ)
-        end)
-
-        if okDensity == true then
-            return tonumber(density)
-        end
-
-        return nil
+        return tonumber(getDensityAtWorldPos(planeId, sampleX, y or 0, sampleZ))
     end
 
     local function sampleDensityFull(planeId, sampleX, sampleZ)
-        if type(getDensityAtWorldPos) ~= "function" or planeId == nil then
+        if type(getDensityAtWorldPos) ~= "function" or planeId == nil or planeId <= 0 or not entityExists(planeId) then
             return nil, nil, nil
         end
 
-        local density = nil
-        local okDensity, densityValue = pcall(function()
-            return getDensityAtWorldPos(planeId, sampleX, y or 0, sampleZ)
-        end)
-        if okDensity == true then
-            density = tonumber(densityValue)
-        end
+        local density = tonumber(getDensityAtWorldPos(planeId, sampleX, y or 0, sampleZ))
 
         local state = nil
         if type(getDensityStatesAtWorldPos) == "function" then
-            local okState, stateValue = pcall(function()
-                return getDensityStatesAtWorldPos(planeId, sampleX, y or 0, sampleZ)
-            end)
-            if okState == true then
-                state = tonumber(stateValue)
-            end
+            state = tonumber(getDensityStatesAtWorldPos(planeId, sampleX, y or 0, sampleZ))
         end
 
         local typeIndex = nil
         if type(getDensityTypeIndexAtWorldPos) == "function" then
-            local okType, typeValue = pcall(function()
-                return getDensityTypeIndexAtWorldPos(planeId, sampleX, y or 0, sampleZ)
-            end)
-            if okType == true then
-                typeIndex = tonumber(typeValue)
-            end
+            typeIndex = tonumber(getDensityTypeIndexAtWorldPos(planeId, sampleX, y or 0, sampleZ))
         end
 
         return density, state, typeIndex
@@ -3533,12 +2444,11 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
             return nil, nil
         end
 
-        local okPlane, planeId, typeIndex = pcall(function()
-            return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-        end)
+        local planeId, typeIndex = getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
+        planeId = tonumber(planeId)
 
-        if okPlane == true then
-            return tonumber(planeId), tonumber(typeIndex)
+        if planeId ~= nil and planeId > 0 and entityExists(planeId) then
+            return planeId, tonumber(typeIndex)
         end
 
         return nil, nil
@@ -3557,7 +2467,7 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
 
         local planeId = resolvePlaneId(foliage)
         local byNamePlaneId, byNameTypeIndex = resolvePlaneAndTypeByName(layerName)
-        if byNamePlaneId ~= nil then
+        if byNamePlaneId ~= nil and byNamePlaneId > 0 then
             planeId = byNamePlaneId
         end
         if planeId == nil then
@@ -4070,7 +2980,6 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         end
     end
 
-
     local decoGrassMatches = {}
     for _, match in ipairs(grassMatches) do
         if match ~= nil and tostring(match.layerName) == "decoFoliage" then
@@ -4191,10 +3100,7 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
 
         local existingPaint = nil
         if type(foliageSystem.getFoliagePaintByName) == "function" then
-            local ok, result = pcall(foliageSystem.getFoliagePaintByName, foliageSystem, layerName)
-            if ok == true then
-                existingPaint = result
-            end
+            existingPaint = foliageSystem:getFoliagePaintByName(layerName)
         end
         if existingPaint ~= nil then
             tpLog("mapFoliagePaintableEnsure layer=" .. layerName .. " result=true action=alreadyPaintable")
@@ -4227,15 +3133,6 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         }
         table.insert(foliageSystem.paintableFoliages, newPaint)
 
-        local afterPaint = nil
-        if type(foliageSystem.getFoliagePaintByName) == "function" then
-            local ok, result = pcall(foliageSystem.getFoliagePaintByName, foliageSystem, layerName)
-            if ok == true then
-                afterPaint = result
-            end
-        end
-
-        tpLog("mapFoliagePaintableEnsure layer=" .. layerName .. " result=true action=added source=" .. tostring(sourceName) .. " startStateChannel=" .. tostring(startStateChannel) .. " numStateChannels=" .. tostring(numStateChannels) .. " getAfter=" .. tostring(afterPaint ~= nil))
         return true, "added"
     end
 
@@ -4380,11 +3277,7 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         for _, unresolvedLayer in pairs(unresolvedVisualLayers or {}) do
             if unresolvedLayer ~= nil and isBushLikeLayerName(unresolvedLayer.layerName) == true then
                 logUnsupportedVisualLayer(unresolvedLayer)
-                if TP_MAP_ONLY_FOLIAGE_RESULT_ITEMS == true then
-                    addMapOnlyFoliageItems(unresolvedLayer)
-                else
-                    tpLog("mapOnlyVisualFoliageResultSuppressed layer=" .. tostring(unresolvedLayer.layerName or "") .. " reason=conservativeModMapCleanup")
-                end
+                tpLog("mapOnlyVisualFoliageResultSuppressed layer=" .. tostring(unresolvedLayer.layerName or "") .. " reason=conservativeModMapCleanup")
             end
         end
 
@@ -4558,7 +3451,6 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         tpLog("foliageSelectionMode=otherFallback")
     end
 
-
     local function tpAddStrongVisibleLayerCandidates()
         local selectedSeen = {}
         for _, match in ipairs(selected or {}) do
@@ -4644,7 +3536,6 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
     end
 
     tpAddStrongVisibleLayerCandidates()
-
 
     tpLog("foliagePrimaryPriorityActive=true selected=" .. tostring(#selected))
     if mixedLayerReviewMode == true then
@@ -4744,7 +3635,6 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
         selected = limited
     end
 
-
     for _, match in ipairs(selected) do
         if match ~= nil and match.sourceItem ~= nil then
             if match.mapOnlyFoliage == true then
@@ -4829,906 +3719,23 @@ function MapObjectFinder:tpCollectFoliageMenuCandidatesAtCurrentPick(screen)
     return selected
 end
 
-
-function MapObjectFinder:tpFormatTraceValue(value)
-    if value == nil then
-        return "<nil>"
-    end
-
-    local valueType = type(value)
-    if valueType == "number" or valueType == "boolean" or valueType == "string" then
-        return tostring(value)
-    end
-
-    return valueType
-end
-
-function MapObjectFinder:tpSafeCallTrace(functionName, ...)
-    local fn = _G[functionName]
-    if type(fn) ~= "function" then
-        return false, "functionMissing"
-    end
-
-    local args = {...}
-    local results = {pcall(function()
-        return fn(unpack(args))
-    end)}
-
-    local ok = table.remove(results, 1)
-    if ok ~= true then
-        return false, tostring(results[1])
-    end
-
-    local parts = {}
-    for i, value in ipairs(results) do
-        table.insert(parts, self:tpFormatTraceValue(value))
-    end
-
-    if #parts == 0 then
-        return true, "<noReturn>"
-    end
-
-    return true, table.concat(parts, ",")
-end
-
-function MapObjectFinder:tpBuildFoliageTraceMenuMap(screen)
-    local map = {}
-    local treeItems = {}
-
-    screen = screen or self:tpResolveConstructionLogicScreen()
-    if screen == nil or type(screen.items) ~= "table" then
-        return map, treeItems
-    end
-
-    local function addMenuEntry(layerName, state, item, categoryIndex, tabIndex, itemIndex)
-        layerName = tostring(layerName or "")
-        state = tonumber(state)
-        if layerName == "" or state == nil then
-            return
-        end
-
-        map[layerName] = map[layerName] or {}
-        map[layerName][state] = map[layerName][state] or {}
-        table.insert(map[layerName][state], {
-            item = item,
-            categoryIndex = categoryIndex,
-            tabIndex = tabIndex,
-            itemIndex = itemIndex
-        })
-    end
-
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    for itemIndex, item in ipairs(tabItems) do
-                        if type(item) == "table" then
-                            local itemName = tostring(item.name or item.title or "")
-                            local lowerName = string.lower(itemName)
-                            local image = tostring(item.imageFilename or "")
-                            local lowerImage = string.lower(image)
-                            local brushText = ""
-
-                            if type(item.brushParameters) == "table" then
-                                if item.brushParameters[2] ~= nil then
-                                    local layerName = tostring(item.brushParameters[1] or "")
-                                    local stateText = tostring(item.brushParameters[2] or "")
-                                    brushText = layerName .. "|" .. stateText
-                                    addMenuEntry(layerName, tonumber(stateText), item, categoryIndex, tabIndex, itemIndex)
-                                else
-                                    brushText = tostring(item.brushParameters[1] or "")
-                                    local layerName, stateText = string.match(brushText, "^([^|]+)|([^|]+)$")
-                                    addMenuEntry(layerName, tonumber(stateText), item, categoryIndex, tabIndex, itemIndex)
-                                end
-                            end
-
-                            if string.find(lowerName, "tree", 1, true) ~= nil or string.find(lowerName, "baum", 1, true) ~= nil or string.find(lowerImage, "tree", 1, true) ~= nil or string.find(lowerImage, "baum", 1, true) ~= nil then
-                                table.insert(treeItems, {
-                                    categoryIndex = categoryIndex,
-                                    tabIndex = tabIndex,
-                                    itemIndex = itemIndex,
-                                    name = itemName,
-                                    image = image,
-                                    brush = brushText,
-                                    xml = tostring(item.xmlFilename or item.filename or item.configFileName or "")
-                                })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return map, treeItems
-end
-
-function MapObjectFinder:tpCollectTraceSamples(planeId, rawX, rawY, rawZ, gridX, gridZ)
-    local samples = {}
-    local offsets = {
-        {name="raw", x=rawX, z=rawZ},
-        {name="grid", x=gridX, z=gridZ},
-        {name="rawN", x=rawX, z=rawZ + 0.15},
-        {name="rawS", x=rawX, z=rawZ - 0.15},
-        {name="rawE", x=rawX + 0.15, z=rawZ},
-        {name="rawW", x=rawX - 0.15, z=rawZ}
-    }
-
-    for _, sample in ipairs(offsets) do
-        local densityOk, density = self:tpSafeCallTrace("getDensityAtWorldPos", planeId, sample.x, rawY or 0, sample.z)
-        local statesOk, states = self:tpSafeCallTrace("getDensityStatesAtWorldPos", planeId, sample.x, rawY or 0, sample.z)
-        local typeOk, typeIndex = self:tpSafeCallTrace("getDensityTypeIndexAtWorldPos", planeId, sample.x, rawY or 0, sample.z)
-        table.insert(samples, string.format(
-            "%s[d=%s:%s states=%s:%s type=%s:%s]",
-            tostring(sample.name),
-            tostring(densityOk), tostring(density),
-            tostring(statesOk), tostring(states),
-            tostring(typeOk), tostring(typeIndex)
-        ))
-    end
-
-    return table.concat(samples, " ")
-end
-
-function MapObjectFinder:tpLogOfficialFoliageTraceAtCurrentPick(screen)
-    local gridX = self.lastPipetteWorldX
-    local gridY = self.lastPipetteWorldY
-    local gridZ = self.lastPipetteWorldZ
-    local rawX = self.tpLastRawSampleX or gridX
-    local rawY = self.tpLastRawSampleY or gridY
-    local rawZ = self.tpLastRawSampleZ or gridZ
-    local foliageSystem = g_currentMission ~= nil and g_currentMission.foliageSystem or nil
-    local terrainRootNode = g_currentMission ~= nil and g_currentMission.terrainRootNode or nil
-
-    if gridX == nil or gridZ == nil or rawX == nil or rawZ == nil then
-        tpLog("officialFoliageTrace missingWorldPosition")
-        return
-    end
-
-    tpLog(string.format(
-        "officialFoliageTraceStart world=%.3f,%.3f,%.3f raw=%.3f,%.3f,%.3f terrainRoot=%s",
-        tonumber(gridX) or 0,
-        tonumber(gridY) or 0,
-        tonumber(gridZ) or 0,
-        tonumber(rawX) or 0,
-        tonumber(rawY) or 0,
-        tonumber(rawZ) or 0,
-        tostring(terrainRootNode)
-    ))
-
-    if terrainRootNode ~= nil then
-        local terrainSizeOk, terrainSize = self:tpSafeCallTrace("getTerrainSize", terrainRootNode)
-        tpLog("officialTerrainInfo getTerrainSize=" .. tostring(terrainSizeOk) .. ":" .. tostring(terrainSize))
-    end
-
-    if type(foliageSystem) ~= "table" then
-        tpLog("officialFoliageTrace missingFoliageSystem")
-        return
-    end
-
-    local menuMap, treeItems = self:tpBuildFoliageTraceMenuMap(screen)
-
-    local function menuStateSummary(layerName)
-        local states = {}
-        if type(menuMap[layerName]) == "table" then
-            for state, entries in pairs(menuMap[layerName]) do
-                table.insert(states, tostring(state) .. "(" .. tostring(#entries) .. ")")
-            end
-            table.sort(states)
-        end
-        if #states == 0 then
-            return "<none>"
-        end
-        return table.concat(states, ",")
-    end
-
-    local function logFoliageTrace(sourceName, index, foliage)
-        if type(foliage) ~= "table" then
-            return
-        end
-
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        if layerName == "" then
-            layerName = "<empty>"
-        end
-
-        local fieldPlane = tonumber(foliage.terrainDataPlaneId)
-        local byNameOk, byName = false, "notCalled"
-        local foliageTgOk, foliageTg = false, "notCalled"
-        local detailByNameOk, detailByName = false, "notCalled"
-
-        if terrainRootNode ~= nil and layerName ~= "<empty>" then
-            byNameOk, byName = self:tpSafeCallTrace("getTerrainDataPlaneByName", terrainRootNode, layerName)
-            foliageTgOk, foliageTg = self:tpSafeCallTrace("getFoliageTransformGroupIdByFoliageName", terrainRootNode, layerName)
-            detailByNameOk, detailByName = self:tpSafeCallTrace("getTerrainDetailByName", terrainRootNode, layerName)
-        end
-
-        local planeId = fieldPlane
-        if planeId == nil then
-            planeId = tonumber(string.match(tostring(byName), "^([^,]+)"))
-        end
-
-        local densityMapSizeOk, densityMapSize = false, "missingPlane"
-        local associatedTgOk, associatedTg = false, "missingPlane"
-        local detailNameOk, detailName = false, "missingPlane"
-        local detailChannelsOk, detailChannels = false, "missingPlane"
-        local detailTypeOk, detailType = false, "missingPlane"
-        local samples = "missingPlane"
-        local officialTypeMatch = "missingPlane"
-
-        if planeId ~= nil then
-            densityMapSizeOk, densityMapSize = self:tpSafeCallTrace("getDensityMapSize", planeId)
-            associatedTgOk, associatedTg = self:tpSafeCallTrace("getDataPlaneAssociatedTransformGroup", planeId)
-            detailNameOk, detailName = self:tpSafeCallTrace("getTerrainDetailName", planeId)
-            detailChannelsOk, detailChannels = self:tpSafeCallTrace("getTerrainDetailNumChannels", planeId)
-            detailTypeOk, detailType = self:tpSafeCallTrace("getTerrainDetailTypeIndex", planeId)
-            samples = self:tpCollectTraceSamples(planeId, rawX, rawY, rawZ, gridX, gridZ)
-            local byNameText = tostring(byName or "")
-            local byNameType = tonumber(string.match(byNameText, "^[^,]+,([^,]+)"))
-            local detailTypeNum = tonumber(tostring(detailType or ""))
-            local sampleTypeOk, sampleType = self:tpSafeCallTrace("getDensityTypeIndexAtWorldPos", planeId, rawX, rawY or 0, rawZ)
-            local sampleTypeNum = tonumber(tostring(sampleType or ""))
-            officialTypeMatch = "byNameType=" .. tostring(byNameType or "<nil>") .. " detailType=" .. tostring(detailTypeNum or "<nil>") .. " rawType=" .. tostring(sampleTypeNum or "<nil>") .. " rawTypeOk=" .. tostring(sampleTypeOk) .. " matchByName=" .. tostring(byNameType ~= nil and sampleTypeNum ~= nil and byNameType == sampleTypeNum) .. " matchDetail=" .. tostring(detailTypeNum ~= nil and sampleTypeNum ~= nil and detailTypeNum == sampleTypeNum)
-        end
-
-        local startChannel = tonumber(foliage.startStateChannel or foliage.startChannel or foliage.stateChannel or 0) or 0
-        local numChannels = tonumber(foliage.numStateChannels or foliage.numChannels or foliage.stateChannels or 0) or 0
-
-        tpLog(string.format(
-            "officialFoliageTrace source=%s index=%s layer=%s name=%s fieldPlane=%s byName=%s:%s detailByName=%s:%s foliageTg=%s:%s associatedTg=%s:%s densityMapSize=%s:%s detailName=%s:%s detailChannels=%s:%s detailType=%s:%s startChannel=%s numStateChannels=%s menuStates=%s typeMatch=%s samples=%s",
-            tostring(sourceName),
-            tostring(index),
-            tostring(layerName),
-            tostring(foliage.name or foliage.typeName or foliage.fillTypeName or "<nil>"),
-            tostring(fieldPlane),
-            tostring(byNameOk), tostring(byName),
-            tostring(detailByNameOk), tostring(detailByName),
-            tostring(foliageTgOk), tostring(foliageTg),
-            tostring(associatedTgOk), tostring(associatedTg),
-            tostring(densityMapSizeOk), tostring(densityMapSize),
-            tostring(detailNameOk), tostring(detailName),
-            tostring(detailChannelsOk), tostring(detailChannels),
-            tostring(detailTypeOk), tostring(detailType),
-            tostring(startChannel),
-            tostring(numChannels),
-            menuStateSummary(layerName),
-            tostring(officialTypeMatch),
-            tostring(samples)
-        ))
-    end
-
-    if type(foliageSystem.paintableFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.paintableFoliages) do
-            logFoliageTrace("paintableFoliages", index, foliage)
-        end
-    end
-
-    if type(foliageSystem.decoFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.decoFoliages) do
-            logFoliageTrace("decoFoliages", index, foliage)
-        end
-    end
-
-    if type(foliageSystem.decoFoliageMappings) == "table" then
-        local printed = 0
-        for key, mapping in pairs(foliageSystem.decoFoliageMappings) do
-            printed = printed + 1
-            if printed > 60 then
-                break
-            end
-
-            local mappedLayer = "<nil>"
-            local mappedState = "<nil>"
-            local mappedName = "<nil>"
-            if type(mapping) == "table" then
-                mappedLayer = tostring(mapping.layerName or mapping.foliageLayerName or mapping.name or mapping.typeName or "<nil>")
-                mappedState = tostring(mapping.state or mapping.value or mapping.densityValue or mapping.growthState or "<nil>")
-                mappedName = tostring(mapping.name or mapping.typeName or mapping.fillTypeName or "<nil>")
-            else
-                mappedName = tostring(mapping)
-            end
-
-            tpLog(string.format(
-                "officialFoliageMapping key=%s mappedName=%s mappedLayer=%s mappedState=%s valueType=%s",
-                tostring(key),
-                tostring(mappedName),
-                tostring(mappedLayer),
-                tostring(mappedState),
-                tostring(type(mapping))
-            ))
-        end
-    end
-
-    tpLog("officialTreeTrace separateHandlingRequired=true menuTreeCandidates=" .. tostring(#treeItems))
-    for index, tree in ipairs(treeItems) do
-        if index > 25 then
-            break
-        end
-        tpLog(string.format(
-            "officialTreeMenuCandidate index=%s name=%s brush=%s order=%s/%s/%s image=%s xml=%s",
-            tostring(index),
-            tostring(tree.name),
-            tostring(tree.brush),
-            tostring(tree.categoryIndex),
-            tostring(tree.tabIndex),
-            tostring(tree.itemIndex),
-            tostring(tree.image),
-            tostring(tree.xml)
-        ))
-    end
-
-    tpLog("officialFoliageTraceEnd")
-end
-
-function MapObjectFinder:tpProbeFoliageAtCurrentPick()
-    local x = self.lastPipetteWorldX
-    local y = self.lastPipetteWorldY
-    local z = self.lastPipetteWorldZ
-    local foliageSystem = g_currentMission ~= nil and g_currentMission.foliageSystem or nil
-
-    if x == nil or z == nil or type(foliageSystem) ~= "table" then
-        return
-    end
-
-    local function sampleDensity(planeId, sampleX, sampleZ)
-        if type(getDensityAtWorldPos) ~= "function" or planeId == nil then
-            return false, nil
-        end
-
-        return pcall(function()
-            return getDensityAtWorldPos(planeId, sampleX, y or 0, sampleZ)
-        end)
-    end
-
-    local function resolvePlaneId(foliage)
-        if type(foliage) ~= "table" then
-            return nil, "noFoliageTable"
-        end
-
-        local planeId = tonumber(foliage.terrainDataPlaneId)
-        if planeId ~= nil then
-            return planeId, "terrainDataPlaneId"
-        end
-
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        if layerName ~= "" and type(getTerrainDataPlaneByName) == "function" and g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local okPlane, plane = pcall(function()
-                return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if okPlane == true and tonumber(plane) ~= nil then
-                return tonumber(plane), "getTerrainDataPlaneByName"
-            end
-        end
-
-        return nil, "missingPlaneId"
-    end
-
-    local function logPlaneSamples(prefix, index, foliage)
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        local planeId, planeSource = resolvePlaneId(foliage)
-        local startChannel = tonumber(foliage.startStateChannel or foliage.startChannel or 0) or 0
-        local numChannels = tonumber(foliage.numStateChannels or foliage.numChannels or 4) or 4
-
-        local samples = {}
-        local offsets = {
-            {name = "center", dx = 0.00, dz = 0.00},
-            {name = "north", dx = 0.00, dz = 0.25},
-            {name = "south", dx = 0.00, dz = -0.25},
-            {name = "east", dx = 0.25, dz = 0.00},
-            {name = "west", dx = -0.25, dz = 0.00}
-        }
-
-        for _, offset in ipairs(offsets) do
-            local okDensity, density = sampleDensity(planeId, x + offset.dx, z + offset.dz)
-            table.insert(samples, string.format(
-                "%s=%s:%s",
-                tostring(offset.name),
-                tostring(okDensity),
-                tostring(density)
-            ))
-        end
-
-        tpLog(string.format(
-            "foliagePlaneProbe type=%s index=%s layer=%s plane=%s source=%s startChannel=%s numChannels=%s world=%.3f,%.3f,%.3f %s",
-            tostring(prefix),
-            tostring(index),
-            tostring(layerName),
-            tostring(planeId),
-            tostring(planeSource),
-            tostring(startChannel),
-            tostring(numChannels),
-            tonumber(x) or 0,
-            tonumber(y) or 0,
-            tonumber(z) or 0,
-            table.concat(samples, " ")
-        ))
-    end
-
-    if type(foliageSystem.paintableFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.paintableFoliages) do
-            if index > 12 then
-                break
-            end
-
-            self:tpLogTableKeys("paintableFoliageKeys index=" .. tostring(index), foliage, 32)
-            logPlaneSamples("paintable", index, foliage)
-        end
-    end
-
-    if type(foliageSystem.decoFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.decoFoliages) do
-            if index > 12 then
-                break
-            end
-
-            self:tpLogTableKeys("decoFoliageKeys index=" .. tostring(index), foliage, 32)
-            logPlaneSamples("deco", index, foliage)
-        end
-    end
-
-    if type(foliageSystem.decoFoliageMappings) == "table" then
-        local printed = 0
-        for key, mapping in pairs(foliageSystem.decoFoliageMappings) do
-            printed = printed + 1
-            if printed > 20 then
-                break
-            end
-            self:tpLogTableKeys("decoFoliageMappingKeys key=" .. tostring(key), mapping, 32)
-        end
-    end
-end
-
-function MapObjectFinder:tpLogFoliageStructureOnce()
-    if self.tpFoliageStructureLogged == true then
-        return
-    end
-
-    self.tpFoliageStructureLogged = true
-
-    local foliageSystem = g_currentMission ~= nil and g_currentMission.foliageSystem or nil
-    if type(foliageSystem) ~= "table" then
-        tpLog("foliageStructure missing")
-        return
-    end
-
-    local paintableCount = type(foliageSystem.paintableFoliages) == "table" and #foliageSystem.paintableFoliages or 0
-    local decoCount = type(foliageSystem.decoFoliages) == "table" and #foliageSystem.decoFoliages or 0
-    local mappingCount = 0
-    if type(foliageSystem.decoFoliageMappings) == "table" then
-        for _ in pairs(foliageSystem.decoFoliageMappings) do
-            mappingCount = mappingCount + 1
-        end
-    end
-
-    tpLog(string.format("foliageStructure paintable=%s deco=%s mappings=%s", tostring(paintableCount), tostring(decoCount), tostring(mappingCount)))
-
-    if type(foliageSystem.paintableFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.paintableFoliages) do
-            if index > 12 then
-                break
-            end
-            tpLog(string.format(
-                "paintableFoliage index=%s name=%s layer=%s id=%s value=%s state=%s",
-                tostring(index),
-                tostring(foliage.name or foliage.typeName or foliage.fillTypeName or "<nil>"),
-                tostring(foliage.layerName or foliage.foliageLayerName or "<nil>"),
-                tostring(foliage.id or foliage.typeIndex or foliage.foliageId or "<nil>"),
-                tostring(foliage.value or foliage.densityValue or "<nil>"),
-                tostring(foliage.state or foliage.growthState or foliage.growthStateI or "<nil>")
-            ))
-        end
-    end
-
-    if type(foliageSystem.decoFoliages) == "table" then
-        for index, foliage in ipairs(foliageSystem.decoFoliages) do
-            if index > 12 then
-                break
-            end
-            tpLog(string.format(
-                "decoFoliage index=%s name=%s layer=%s id=%s value=%s state=%s",
-                tostring(index),
-                tostring(foliage.name or foliage.typeName or foliage.fillTypeName or "<nil>"),
-                tostring(foliage.layerName or foliage.foliageLayerName or "<nil>"),
-                tostring(foliage.id or foliage.typeIndex or foliage.foliageId or "<nil>"),
-                tostring(foliage.value or foliage.densityValue or "<nil>"),
-                tostring(foliage.state or foliage.growthState or foliage.growthStateI or "<nil>")
-            ))
-        end
-    end
-
-    if type(foliageSystem.decoFoliageMappings) == "table" then
-        local printed = 0
-        for key, mapping in pairs(foliageSystem.decoFoliageMappings) do
-            printed = printed + 1
-            if printed > 16 then
-                break
-            end
-            tpLog(string.format(
-                "decoFoliageMapping key=%s type=%s value=%s name=%s layer=%s",
-                tostring(key),
-                tostring(type(mapping)),
-                tostring(mapping),
-                type(mapping) == "table" and tostring(mapping.name or mapping.typeName or "<nil>") or "<nil>",
-                type(mapping) == "table" and tostring(mapping.layerName or mapping.foliageLayerName or "<nil>") or "<nil>"
-            ))
-        end
-    end
-end
-
-function MapObjectFinder:tpBuildFoliageDebugOverlayForWorld(x, y, z)
-    if tpIsDebugModeEnabled() ~= true then
-        return
-    end
-
-    local lines = {}
-    table.insert(lines, "Terrain Texture And Object Picker Debug")
-    table.insert(lines, string.format("Click world: %.3f / %.3f / %.3f", tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0))
-
-    local foliageSystem = g_currentMission ~= nil and g_currentMission.foliageSystem or nil
-    if type(foliageSystem) ~= "table" then
-        table.insert(lines, "No foliageSystem available")
-        self.tpDebugOverlayLines = lines
-        self.tpDebugLastClickTime = getTimeSec ~= nil and getTimeSec() or 0
-        return
-    end
-
-    local function resolvePlaneId(foliage)
-        if type(foliage) ~= "table" then
-            return nil
-        end
-
-        local planeId = tonumber(foliage.terrainDataPlaneId)
-        if planeId ~= nil then
-            return planeId
-        end
-
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        if layerName ~= "" and type(getTerrainDataPlaneByName) == "function" and g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local okPlane, plane = pcall(function()
-                return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if okPlane == true and tonumber(plane) ~= nil then
-                return tonumber(plane)
-            end
-        end
-
-        return nil
-    end
-
-    local function sampleDensity(planeId, sx, sz)
-        if type(getDensityAtWorldPos) ~= "function" or planeId == nil then
-            return nil
-        end
-
-        local ok, density = pcall(function()
-            return getDensityAtWorldPos(planeId, sx, y or 0, sz)
-        end)
-
-        if ok == true then
-            return tonumber(density)
-        end
-
-        return nil
-    end
-
-    local layers = {}
-    local function addLayer(foliage, source)
-        if type(foliage) ~= "table" then
-            return
-        end
-
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        if layerName == "" or layers[layerName] ~= nil then
-            return
-        end
-
-        local planeId = resolvePlaneId(foliage)
-        if planeId ~= nil then
-            table.insert(layers, { name = layerName, planeId = planeId, source = tostring(source or "?") })
-            layers[layerName] = true
-        end
-    end
-
-    if type(foliageSystem.paintableFoliages) == "table" then
-        for _, foliage in ipairs(foliageSystem.paintableFoliages) do
-            addLayer(foliage, "paintable")
-        end
-    end
-
-    if type(foliageSystem.decoFoliages) == "table" then
-        for _, foliage in ipairs(foliageSystem.decoFoliages) do
-            addLayer(foliage, "deco")
-        end
-    end
-
-    local offset = 0.50
-    for _, layer in ipairs(layers) do
-        if #lines >= 10 then
-            break
-        end
-
-        local center = sampleDensity(layer.planeId, x, z) or 0
-        local north = sampleDensity(layer.planeId, x, z - offset) or 0
-        local south = sampleDensity(layer.planeId, x, z + offset) or 0
-        local east = sampleDensity(layer.planeId, x + offset, z) or 0
-        local west = sampleDensity(layer.planeId, x - offset, z) or 0
-        if center ~= 0 or north ~= 0 or south ~= 0 or east ~= 0 or west ~= 0 then
-            table.insert(lines, string.format("%s: C=%s N=%s S=%s E=%s W=%s", tostring(layer.name), tostring(center), tostring(north), tostring(south), tostring(east), tostring(west)))
-        end
-    end
-
-    if #lines <= 2 then
-        table.insert(lines, "No non-zero foliage density at sampled points")
-    end
-
-    self.tpDebugOverlayLines = lines
-    self.tpDebugLastClickTime = getTimeSec ~= nil and getTimeSec() or 0
-
-    for _, line in ipairs(lines) do
-        tpLog("debugOverlay " .. tostring(line))
-    end
-end
-
 function MapObjectFinder:tpDrawDebugWorldLine(x1, y1, z1, x2, y2, z2, r, g, b)
     r = r or 0.15
     g = g or 1.0
     b = b or 0.15
 
     if DebugUtil ~= nil and type(DebugUtil.drawDebugLine) == "function" then
-        local ok = pcall(function()
-            DebugUtil.drawDebugLine(x1, y1, z1, x2, y2, z2, r, g, b)
-        end)
-        if ok == true then
-            return true
-        end
+        DebugUtil.drawDebugLine(x1, y1, z1, x2, y2, z2, r, g, b)
+        return true
     end
 
     if type(drawDebugLine) == "function" then
-        local ok = pcall(function()
-            drawDebugLine(x1, y1, z1, x2, y2, z2, r, g, b)
-        end)
-        if ok == true then
-            return true
-        end
-    end
-
-    if DebugUtil ~= nil and type(DebugUtil.drawDebugPoint) == "function" then
-        local ok = pcall(function()
-            DebugUtil.drawDebugPoint(x1, y1, z1, 0.05, r, g, b)
-            DebugUtil.drawDebugPoint(x2, y2, z2, 0.05, r, g, b)
-        end)
-        if ok == true then
-            return true
-        end
+        drawDebugLine(x1, y1, z1, x2, y2, z2, r, g, b)
+        return true
     end
 
     return false
 end
-
-function MapObjectFinder:tpResolveDebugFoliagePlane()
-    local foliageSystem = g_currentMission ~= nil and g_currentMission.foliageSystem or nil
-    if type(foliageSystem) ~= "table" then
-        return nil, nil
-    end
-
-    local function resolvePlaneId(foliage)
-        if type(foliage) ~= "table" then
-            return nil
-        end
-
-        local planeId = tonumber(foliage.terrainDataPlaneId)
-        if planeId ~= nil then
-            return planeId
-        end
-
-        local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-        if layerName ~= "" and type(getTerrainDataPlaneByName) == "function" and g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local okPlane, plane = pcall(function()
-                return getTerrainDataPlaneByName(g_currentMission.terrainRootNode, layerName)
-            end)
-            if okPlane == true and tonumber(plane) ~= nil then
-                return tonumber(plane)
-            end
-        end
-
-        return nil
-    end
-
-    local bestPlane = nil
-    local bestName = nil
-
-    local function tryList(list)
-        if type(list) ~= "table" then
-            return
-        end
-        for _, foliage in ipairs(list) do
-            local layerName = tostring(foliage.layerName or foliage.foliageLayerName or foliage.name or "")
-            local planeId = resolvePlaneId(foliage)
-            if planeId ~= nil then
-                bestPlane = planeId
-                bestName = layerName ~= "" and layerName or tostring(planeId)
-                return
-            end
-        end
-    end
-
-    tryList(foliageSystem.decoFoliages)
-    if bestPlane == nil then
-        tryList(foliageSystem.paintableFoliages)
-    end
-
-    return bestPlane, bestName
-end
-
-function MapObjectFinder:tpSampleDebugDensity(planeId, x, y, z)
-    if type(getDensityAtWorldPos) ~= "function" or planeId == nil then
-        return nil
-    end
-
-    local ok, density = pcall(function()
-        return getDensityAtWorldPos(planeId, x, y or 0, z)
-    end)
-
-    if ok == true then
-        return tonumber(density)
-    end
-
-    return nil
-end
-
-function MapObjectFinder:tpBuildAlignedDebugGridPosition(x, y, z)
-    local planeId, layerName = self:tpResolveDebugFoliagePlane()
-    if planeId == nil then
-        return nil
-    end
-
-    local cellSize = 0.50
-    local terrainRootNode = g_currentMission ~= nil and g_currentMission.terrainRootNode or nil
-    if terrainRootNode ~= nil and type(getTerrainSize) == "function" and type(getDensityMapSize) == "function" then
-        local okTerrain, terrainSize = pcall(function()
-            return getTerrainSize(terrainRootNode)
-        end)
-        local okDensity, densitySize = pcall(function()
-            return getDensityMapSize(planeId)
-        end)
-        terrainSize = tonumber(terrainSize)
-        densitySize = tonumber(densitySize)
-        if okTerrain == true and okDensity == true and terrainSize ~= nil and densitySize ~= nil and terrainSize > 0 and densitySize > 0 then
-            local calculated = terrainSize / densitySize
-            if calculated > 0.05 and calculated < 5 then
-                cellSize = calculated
-            end
-        end
-    end
-
-    return {
-        centerX = math.floor((tonumber(x) or 0) / cellSize + 0.5) * cellSize,
-        centerZ = math.floor((tonumber(z) or 0) / cellSize + 0.5) * cellSize,
-        cellX = cellSize,
-        cellZ = cellSize,
-        layerName = layerName or "?",
-        aligned = true,
-        boundaryMode = "officialCell",
-        measuredEast = nil,
-        measuredWest = nil,
-        measuredNorth = nil,
-        measuredSouth = nil
-    }
-end
-
-function MapObjectFinder:tpDrawPersistentDebugGrid()
-    local x, y, z = self:findMouseWorldPosition()
-    if x == nil then
-        x = self.lastPipetteWorldX
-        y = self.lastPipetteWorldY
-        z = self.lastPipetteWorldZ
-    end
-
-    if x == nil or y == nil or z == nil then
-        return false
-    end
-
-    local grid = self:tpBuildAlignedDebugGridPosition(x, y, z)
-    if grid == nil then
-        return false
-    end
-
-    local centerX = grid.centerX
-    local centerZ = grid.centerZ
-    local cellX = grid.cellX
-    local cellZ = grid.cellZ
-    local drawY = (tonumber(y) or 0) + 0.09
-    local anyLine = false
-    local recognitionFallbackActive = false
-    if self.tpLastFoliageRecognitionFallback == true then
-        local now = getTimeSec ~= nil and getTimeSec() or 0
-        recognitionFallbackActive = self.tpLastFoliageRecognitionFallbackUntil == nil or now <= self.tpLastFoliageRecognitionFallbackUntil
-    end
-
-    for i = -2, 2 do
-        local xLine = centerX + ((i - 0.5) * cellX)
-        local zLine = centerZ + ((i - 0.5) * cellZ)
-        local major = (i == 0 or i == 1)
-        local r = recognitionFallbackActive and 1.0 or (major and 1.0 or 0.45)
-        local g = recognitionFallbackActive and 0.05 or (major and 0.15 or 1.0)
-        local b = recognitionFallbackActive and 0.05 or (major and 0.05 or 0.25)
-
-        anyLine = self:tpDrawDebugWorldLine(centerX - (1.5 * cellX), drawY, zLine, centerX + (1.5 * cellX), drawY, zLine, r, g, b) or anyLine
-        anyLine = self:tpDrawDebugWorldLine(xLine, drawY, centerZ - (1.5 * cellZ), xLine, drawY, centerZ + (1.5 * cellZ), r, g, b) or anyLine
-    end
-
-    local left = centerX - (0.5 * cellX)
-    local right = centerX + (0.5 * cellX)
-    local top = centerZ - (0.5 * cellZ)
-    local bottom = centerZ + (0.5 * cellZ)
-    local br = (recognitionFallbackActive == true) and 1.0 or (grid.aligned and 0.05 or 1.0)
-    local bg = (recognitionFallbackActive == true) and 0.05 or (grid.aligned and 1.0 or 0.65)
-    local bb = (recognitionFallbackActive == true) and 0.05 or (grid.aligned and 0.05 or 0.0)
-    anyLine = self:tpDrawDebugWorldLine(left, drawY + 0.015, top, right, drawY + 0.015, top, br, bg, bb) or anyLine
-    anyLine = self:tpDrawDebugWorldLine(right, drawY + 0.015, top, right, drawY + 0.015, bottom, br, bg, bb) or anyLine
-    anyLine = self:tpDrawDebugWorldLine(right, drawY + 0.015, bottom, left, drawY + 0.015, bottom, br, bg, bb) or anyLine
-    anyLine = self:tpDrawDebugWorldLine(left, drawY + 0.015, bottom, left, drawY + 0.015, top, br, bg, bb) or anyLine
-
-    local cross = math.min(cellX, cellZ) * 0.18
-    anyLine = self:tpDrawDebugWorldLine((tonumber(x) or centerX) - cross, drawY + 0.03, tonumber(z) or centerZ, (tonumber(x) or centerX) + cross, drawY + 0.03, tonumber(z) or centerZ, 1.0, 1.0, 1.0) or anyLine
-    anyLine = self:tpDrawDebugWorldLine(tonumber(x) or centerX, drawY + 0.03, (tonumber(z) or centerZ) - cross, tonumber(x) or centerX, drawY + 0.03, (tonumber(z) or centerZ) + cross, 1.0, 1.0, 1.0) or anyLine
-
-    if anyLine == true then
-        local modeText = grid.boundaryMode == "officialCell" and "LS25-Zellgröße offiziell" or (grid.aligned and "LS25-Grenze gemessen" or "Fallback-Grenze sichtbar")
-        if recognitionFallbackActive == true then
-            modeText = "Fallback: keine sichere Foliage-Erkennung"
-        end
-        self.tpDebugOverlayLines = {
-            "Terrain Texture And Object Picker Debug",
-            "3x3 Grid: " .. modeText,
-            "Sampling: offizielle Zellgröße + Rohpunkt",
-            "Layer: " .. tostring(grid.layerName or "?"),
-            string.format("Cell: %.3f x %.3f", tonumber(cellX) or 0, tonumber(cellZ) or 0),
-            string.format("Center: %.3f / %.3f", tonumber(centerX) or 0, tonumber(centerZ) or 0),
-            string.format("Mouse: %.3f / %.3f", tonumber(x) or 0, tonumber(z) or 0)
-        }
-    end
-
-    return anyLine
-end
-
-function MapObjectFinder:tpDrawDebugOverlayNow(source)
-    if tpIsDebugModeEnabled() ~= true then
-        return
-    end
-
-    local gridDrawn = false
-    local okGrid, resultGrid = pcall(function()
-        return self:tpDrawPersistentDebugGrid()
-    end)
-    if okGrid == true and resultGrid == true then
-        gridDrawn = true
-    end
-
-    if renderText == nil then
-        return
-    end
-
-    local lines = self.tpDebugOverlayLines
-    if type(lines) ~= "table" or #lines == 0 then
-        lines = { "Terrain Texture And Object Picker Debug aktiv", "3x3 LS25-Raster-Grid aktiv.", "Pipette nutzen, um Werte zu loggen." }
-    end
-
-    local y = 0.94
-    for index, line in ipairs(lines) do
-        if index > 9 then
-            break
-        end
-        pcall(function()
-            renderText(0.02, y - ((index - 1) * 0.018), 0.014, tostring(line))
-        end)
-    end
-
-    pcall(function()
-        renderText(0.02, 0.76, 0.014, gridDrawn and "Debug-Grid: sichtbar (" .. tostring(source or "world") .. ")" or "Debug-Grid: keine 3D-Line-Funktion verfügbar")
-    end)
-end
-
 
 function MapObjectFinder:tpDrawMapOnlyFoliageMarkerNow()
     if type(self.tpMapOnlyFoliageMarker) ~= "table" then
@@ -5761,27 +3768,13 @@ function MapObjectFinder:tpDrawMapOnlyFoliageMarkerNow()
     self:tpDrawDebugWorldLine(x - radius, topY, z + radius, x + radius, topY, z - radius, 1.0, 0.25, 0.05)
 
     if renderText ~= nil then
-        pcall(function()
-            renderText(0.02, 0.78, 0.015, "Map-only Foliage: " .. tostring(marker.layer or "?") .. " states " .. tostring(marker.states or "?"))
-        end)
+        renderText(0.02, 0.78, 0.015, "Map-only Foliage: " .. tostring(marker.layer or "?") .. " states " .. tostring(marker.states or "?"))
     end
 end
-
 
 function MapObjectFinder:draw()
     self:tpDrawMapOnlyFoliageMarkerNow()
 end
-
-local function tpAfterConstructionScreenDraw(screen, ...)
-    if TP_DEBUG_OVERLAY_ENABLED == true and MapObjectFinder ~= nil and MapObjectFinder.tpDrawDebugOverlayNow ~= nil then
-        MapObjectFinder:tpDrawDebugOverlayNow("construction")
-    end
-end
-
-if TP_DEBUG_OVERLAY_ENABLED == true and ConstructionScreen ~= nil and ConstructionScreen.draw ~= nil then
-    ConstructionScreen.draw = Utils.appendedFunction(ConstructionScreen.draw, tpAfterConstructionScreenDraw)
-end
-
 
 function MapObjectFinder.tpOnTreeProbeShapeDetected(self, splitShapeId)
     if self == nil or splitShapeId == nil or splitShapeId == 0 then
@@ -5798,20 +3791,6 @@ function MapObjectFinder.tpOnTreeProbeShapeDetected(self, splitShapeId)
 
     table.insert(self.tpTreeProbeShapes, splitShapeId)
 end
-
-function MapObjectFinder:tpSafeCall(label, fn)
-    if type(fn) ~= "function" then
-        return nil, "noFunction"
-    end
-
-    local ok, result = pcall(fn)
-    if ok == true then
-        return result, nil
-    end
-
-    return nil, tostring(result or label or "error")
-end
-
 
 local function tpNormalizeTreeComparable(value)
     if value == nil then
@@ -5833,7 +3812,7 @@ local function tpNormalizeTreeComparable(value)
 end
 
 function MapObjectFinder:tpGetTreeDescFromSplitShape(splitShapeId)
-    if splitShapeId == nil or splitShapeId == 0 then
+    if splitShapeId == nil or splitShapeId == 0 or not entityExists(splitShapeId) then
         return nil, nil
     end
 
@@ -5841,9 +3820,7 @@ function MapObjectFinder:tpGetTreeDescFromSplitShape(splitShapeId)
         return nil, nil
     end
 
-    local splitType = self:tpSafeCall("getSplitType", function()
-        return getSplitType(splitShapeId)
-    end)
+    local splitType = getSplitType(splitShapeId)
 
     if splitType == nil then
         return nil, nil
@@ -5853,13 +3830,7 @@ function MapObjectFinder:tpGetTreeDescFromSplitShape(splitShapeId)
         return nil, splitType
     end
 
-    local okDesc, desc = pcall(function()
-        return g_treePlantManager:getTreeTypeDescFromSplitType(splitType)
-    end)
-
-    if okDesc ~= true then
-        return nil, splitType
-    end
+    local desc = g_treePlantManager:getTreeTypeDescFromSplitType(splitType)
 
     return desc, splitType
 end
@@ -5882,15 +3853,13 @@ function MapObjectFinder:tpCollectTreeDescsAtWorldPosition(x, y, z)
 
     local radius = TP_TREE_SCAN_RADIUS
     local scanY = y + 0.75
-    local okScan = pcall(function()
-        overlapSphere(x, scanY, z, radius, "tpOnTreeProbeShapeDetected", self, CollisionFlag.TREE, false, false, true, false)
-    end)
+    overlapSphere(x, scanY, z, radius, "tpOnTreeProbeShapeDetected", self, CollisionFlag.TREE, false, false, true, false)
 
     local rawShapes = self.tpTreeProbeShapes or {}
     self.tpTreeProbeShapes = nil
     self.tpTreeProbeSeen = nil
 
-    if okScan ~= true or #rawShapes == 0 then
+    if #rawShapes == 0 then
         return {}
     end
 
@@ -5904,12 +3873,7 @@ function MapObjectFinder:tpCollectTreeDescsAtWorldPosition(x, y, z)
 
             local px, py, pz = nil, nil, nil
             if type(getWorldTranslation) == "function" then
-                local okPos, rx, ry, rz = pcall(function()
-                    return getWorldTranslation(splitShapeId)
-                end)
-                if okPos == true then
-                    px, py, pz = rx, ry, rz
-                end
+                px, py, pz = getWorldTranslation(splitShapeId)
             end
 
             local dx = (tonumber(px) or x) - x
@@ -5924,8 +3888,6 @@ function MapObjectFinder:tpCollectTreeDescsAtWorldPosition(x, y, z)
                     desc = desc,
                     distanceSq = distanceSq
                 })
-            elseif tpIsDebugModeEnabled() == true then
-                tpLog("treePick skippedByDistance splitType=" .. tostring(splitType) .. " distanceSq=" .. tostring(distanceSq) .. " radius=" .. tostring(radius))
             end
         end
     end
@@ -6065,7 +4027,6 @@ local function tpTreeCollectComparableEvidence(root, desc, treeInfo)
     return evidence
 end
 
-
 function MapObjectFinder:tpFindTreePlaceableCandidates(screen, treeInfo)
     local candidates = {}
     local desc = treeInfo ~= nil and treeInfo.desc or nil
@@ -6129,16 +4090,6 @@ function MapObjectFinder:tpFindTreeDisplayItemsForDescs(screen, treeDescs)
         if type(desc) == "table" then
             local candidates = self:tpFindTreePlaceableCandidates(screen, treeInfo)
 
-            if tpIsDebugModeEnabled() == true then
-                tpLog(string.format(
-                    "treePick placeableProbe descName=%s descTitle=%s splitType=%s exactCandidates=%s mode=exactOnly",
-                    tostring(desc.name),
-                    tostring(desc.title),
-                    tostring(treeInfo.splitType),
-                    tostring(#candidates)
-                ))
-            end
-
             if #candidates == 1 and (tonumber(candidates[1].descHits) or 0) > 0 then
                 local item = candidates[1].item
                 if type(item) == "table" then
@@ -6146,28 +4097,8 @@ function MapObjectFinder:tpFindTreeDisplayItemsForDescs(screen, treeDescs)
                     item.tpPipetteDebugSuffix = " [Baum erkannt]"
                     table.insert(results, item)
 
-                    if tpIsDebugModeEnabled() == true then
-                        tpLog(string.format(
-                            "treePick placeableMatchAccepted descName=%s descTitle=%s splitType=%s cat=%s tab=%s item=%s",
-                            tostring(desc.name),
-                            tostring(desc.title),
-                            tostring(treeInfo.splitType),
-                            tostring(candidates[1].categoryIndex),
-                            tostring(candidates[1].tabIndex),
-                            tostring(candidates[1].itemIndex)
-                        ))
-                    end
                 end
             else
-                if tpIsDebugModeEnabled() == true then
-                    tpLog(string.format(
-                        "treePick noSafePlaceableMatch descName=%s descTitle=%s splitType=%s exactCandidates=%s mode=skipped",
-                        tostring(desc.name),
-                        tostring(desc.title),
-                        tostring(treeInfo.splitType),
-                        tostring(#candidates)
-                    ))
-                end
             end
         end
     end
@@ -6179,10 +4110,6 @@ function MapObjectFinder:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, 
     local treeDescs = self:tpCollectTreeDescsAtWorldPosition(x, y, z)
     if #treeDescs == 0 then
         return {}
-    end
-
-    if tpIsDebugModeEnabled() == true then
-        tpLog("treePick descs=" .. tostring(#treeDescs))
     end
 
     local treeItems = self:tpFindTreeDisplayItemsForDescs(screen, treeDescs)
@@ -6197,159 +4124,6 @@ function MapObjectFinder:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, 
     return capped
 end
 
-function MapObjectFinder:tpLogTreeProbesAtWorldPosition(x, y, z)
-    if tpIsDebugModeEnabled() ~= true then
-        return
-    end
-
-    x = tonumber(x)
-    y = tonumber(y)
-    z = tonumber(z)
-
-    if x == nil or y == nil or z == nil then
-        tpLog("treeDiag skipped reason=noWorldPosition")
-        return
-    end
-
-    if type(overlapSphere) ~= "function" then
-        tpLog("treeDiag skipped reason=noOverlapSphere")
-        return
-    end
-
-    if CollisionFlag == nil or CollisionFlag.TREE == nil then
-        tpLog("treeDiag skipped reason=noCollisionFlagTree")
-        return
-    end
-
-    self.tpTreeProbeShapes = {}
-    self.tpTreeProbeSeen = {}
-
-    local radius = 2.0
-    local scanY = y + 1.0
-    local okScan, scanError = pcall(function()
-        overlapSphere(x, scanY, z, radius, "tpOnTreeProbeShapeDetected", self, CollisionFlag.TREE, false, false, true, false)
-    end)
-
-    if okScan ~= true then
-        tpLog("treeDiag scanError=" .. tostring(scanError))
-        self.tpTreeProbeShapes = nil
-        self.tpTreeProbeSeen = nil
-        return
-    end
-
-    local shapes = self.tpTreeProbeShapes or {}
-    tpLog(string.format("treeDiag scan center=%.3f,%.3f,%.3f radius=%.2f hits=%s", x, scanY, z, radius, tostring(#shapes)))
-
-    for index, splitShapeId in ipairs(shapes) do
-        if index > 12 then
-            tpLog("treeDiag moreHits=" .. tostring(#shapes - 12))
-            break
-        end
-
-        local exists = true
-        if type(entityExists) == "function" then
-            exists = entityExists(splitShapeId) == true
-        end
-
-        local hasSplitClass = false
-        if exists == true and type(getHasClassId) == "function" and ClassIds ~= nil and ClassIds.MESH_SPLIT_SHAPE ~= nil then
-            local okClass, value = pcall(function()
-                return getHasClassId(splitShapeId, ClassIds.MESH_SPLIT_SHAPE)
-            end)
-            hasSplitClass = okClass == true and value == true
-        end
-
-        local splitType = nil
-        if exists == true and type(getSplitType) == "function" then
-            splitType = self:tpSafeCall("getSplitType", function()
-                return getSplitType(splitShapeId)
-            end)
-        end
-
-        local isSplit = nil
-        if exists == true and type(getIsSplitShapeSplit) == "function" then
-            isSplit = self:tpSafeCall("getIsSplitShapeSplit", function()
-                return getIsSplitShapeSplit(splitShapeId)
-            end)
-        end
-
-        local rigidBodyType = nil
-        if exists == true and type(getRigidBodyType) == "function" then
-            rigidBodyType = self:tpSafeCall("getRigidBodyType", function()
-                return getRigidBodyType(splitShapeId)
-            end)
-        end
-
-        local nodeName = nil
-        if exists == true and type(getName) == "function" then
-            nodeName = self:tpSafeCall("getName", function()
-                return getName(splitShapeId)
-            end)
-        end
-
-        local px, py, pz = nil, nil, nil
-        if exists == true and type(getWorldTranslation) == "function" then
-            local okPos, rx, ry, rz = pcall(function()
-                return getWorldTranslation(splitShapeId)
-            end)
-            if okPos == true then
-                px, py, pz = rx, ry, rz
-            end
-        end
-
-        local desc = nil
-        if g_treePlantManager ~= nil and type(g_treePlantManager.getTreeTypeDescFromSplitType) == "function" and splitType ~= nil then
-            local okDesc, value = pcall(function()
-                return g_treePlantManager:getTreeTypeDescFromSplitType(splitType)
-            end)
-            if okDesc == true then
-                desc = value
-            else
-                tpLog("treeDiag descError splitType=" .. tostring(splitType) .. " error=" .. tostring(value))
-            end
-        end
-
-        if desc ~= nil then
-            tpLog(string.format(
-                "treeDiag hit index=%s node=%s exists=%s splitClass=%s splitType=%s rigidBody=%s isSplit=%s pos=%.3f,%.3f,%.3f descIndex=%s descName=%s descTitle=%s xml=%s i3d=%s",
-                tostring(index),
-                tostring(nodeName),
-                tostring(exists),
-                tostring(hasSplitClass),
-                tostring(splitType),
-                tostring(rigidBodyType),
-                tostring(isSplit),
-                tonumber(px) or 0,
-                tonumber(py) or 0,
-                tonumber(pz) or 0,
-                tostring(desc.index),
-                tostring(desc.name),
-                tostring(desc.title),
-                tostring(desc.xmlFilename),
-                tostring(desc.i3dFilename)
-            ))
-        else
-            tpLog(string.format(
-                "treeDiag hit index=%s node=%s exists=%s splitClass=%s splitType=%s rigidBody=%s isSplit=%s pos=%.3f,%.3f,%.3f desc=nil",
-                tostring(index),
-                tostring(nodeName),
-                tostring(exists),
-                tostring(hasSplitClass),
-                tostring(splitType),
-                tostring(rigidBodyType),
-                tostring(isSplit),
-                tonumber(px) or 0,
-                tonumber(py) or 0,
-                tonumber(pz) or 0
-            ))
-        end
-    end
-
-    self.tpTreeProbeShapes = nil
-    self.tpTreeProbeSeen = nil
-end
-
-
 function MapObjectFinder:pickTextureAtCurrentMousePosition()
     local x, y, z = self:findMouseWorldPosition()
     tpLog("pickTextureAtCurrentMousePosition called, worldPos=" .. tostring(x) .. "," .. tostring(y) .. "," .. tostring(z))
@@ -6361,76 +4135,13 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
 
     local rawX, rawY, rawZ = x, y, z
 
-    if tpIsDebugModeEnabled() == true and type(self.tpBuildAlignedDebugGridPosition) == "function" then
-        local okGrid, grid = pcall(function()
-            return self:tpBuildAlignedDebugGridPosition(rawX, rawY, rawZ)
-        end)
-
-        if okGrid == true and type(grid) == "table" and tonumber(grid.centerX) ~= nil and tonumber(grid.centerZ) ~= nil then
-            x = tonumber(grid.centerX)
-            z = tonumber(grid.centerZ)
-            self.tpLastSamplingGrid = grid
-            self.tpLastRawSampleX = rawX
-            self.tpLastRawSampleY = rawY
-            self.tpLastRawSampleZ = rawZ
-        else
-            self.tpLastSamplingGrid = nil
-            self.tpLastRawSampleX = rawX
-            self.tpLastRawSampleY = rawY
-            self.tpLastRawSampleZ = rawZ
-        end
-    else
-        self.tpLastSamplingGrid = nil
-        self.tpLastRawSampleX = rawX
-        self.tpLastRawSampleY = rawY
-        self.tpLastRawSampleZ = rawZ
-    end
+    self.tpLastRawSampleX = rawX
+    self.tpLastRawSampleY = rawY
+    self.tpLastRawSampleZ = rawZ
 
     self.lastPipetteWorldX = x
     self.lastPipetteWorldY = y
     self.lastPipetteWorldZ = z
-
-    self:tpBuildFoliageDebugOverlayForWorld(x, y, z)
-
-    if tpIsDebugModeEnabled() == true then
-        local okTreeDiag, treeDiagError = pcall(function()
-            self:tpLogTreeProbesAtWorldPosition(x, y, z)
-        end)
-        if okTreeDiag ~= true then
-            tpLog("treeDiagError=" .. tostring(treeDiagError))
-        end
-    end
-   if type(self.tpLastMapFoliagePaintAttempt) == "table" then
-        local snap = self.tpLastMapFoliagePaintAttempt
-        tpLog(string.format(
-            "mapFoliageLastPaintBeforePick layer=%s state=%s brush=%s name=%s note=compareCurrentScanWithPaintAttempt",
-            tostring(snap.layer or ""),
-            tostring(snap.state or ""),
-            tostring(snap.brush or ""),
-            tostring(snap.name or "")
-        ))
-    end
-    if self.tpLastSamplingGrid ~= nil then
-        local grid = self.tpLastSamplingGrid
-        tpLog(string.format("pickGridSample mode=%s layer=%s cell=%.3fx%.3f center=%.3f,%.3f raw=%.3f,%.3f", tostring(grid.boundaryMode or "?"), tostring(grid.layerName or "?"), tonumber(grid.cellX) or 0, tonumber(grid.cellZ) or 0, tonumber(grid.centerX) or 0, tonumber(grid.centerZ) or 0, tonumber(rawX) or 0, tonumber(rawZ) or 0))
-    end
-    if TP_HEAVY_DIAGNOSTICS == true then
-        self:tpLogFoliageStructureOnce()
-        self:tpLogFoliageFunctionAvailabilityOnce()
-        local okFoliageProbe, foliageProbeError = pcall(function()
-            self:tpProbeFoliageAtCurrentPick()
-        end)
-        if okFoliageProbe ~= true then
-            tpLog("foliageProbeError=" .. tostring(foliageProbeError))
-        end
-
-        local okOfficialTrace, officialTraceError = pcall(function()
-            self:tpLogOfficialFoliageTraceAtCurrentPick()
-        end)
-        if okOfficialTrace ~= true then
-            tpLog("officialFoliageTraceError=" .. tostring(officialTraceError))
-        end
-    end
 
     self.tpResultItems = {}
     self:tpResetLayerMenuOutput()
@@ -6446,13 +4157,9 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
 
     local treeResultItems = {}
     if screen ~= nil then
-        local okTreeItems, collectedTreeItems = pcall(function()
-            return self:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, z)
-        end)
-        if okTreeItems == true and type(collectedTreeItems) == "table" then
+        local collectedTreeItems = self:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, z)
+        if type(collectedTreeItems) == "table" then
             treeResultItems = collectedTreeItems
-        elseif okTreeItems ~= true then
-            tpLog("treePick collectError=" .. tostring(collectedTreeItems))
         end
     end
 
@@ -6463,31 +4170,7 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
         end
     end
 
-    if TP_HEAVY_DIAGNOSTICS == true then
-        self:tpLogConstructionStructureOnce(screen)
-        self:tpLogConstructionBrushRuntime(screen, "afterPickBeforeCandidates")
-        self:tpLogFoliageMenuItemInternals(screen, "afterPickBeforeCandidates")
-    end
-
     local visibleCandidates = self:tpCollectCurrentPaintTabCandidates() or {}
-    if TP_HEAVY_DIAGNOSTICS == true then
-        tpLog("visiblePaintCandidates=" .. tostring(#visibleCandidates))
-        for index, candidate in ipairs(visibleCandidates) do
-            if index > 80 then
-                break
-            end
-            tpLog(string.format(
-                "visibleCandidate index=%s name=%s brush=%s overlay=%s cat=%s tab=%s item=%s",
-                tostring(index),
-                tostring(candidate.name or candidate.itemName or "<nil>"),
-                tostring(candidate.brushParameter or "<nil>"),
-                tostring(candidate.terrainOverlayLayer or candidate.overlayLayer or candidate.terrainLayer or "<nil>"),
-                tostring(candidate.categoryIndex or "<nil>"),
-                tostring(candidate.tabIndex or "<nil>"),
-                tostring(candidate.itemIndex or "<nil>")
-            ))
-        end
-    end
     local resultMatches = {}
     local seen = {}
 
@@ -6556,18 +4239,13 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
         end
     end
 
-    if TP_FOLIAGE_TEST_SUPPRESS_GROUND_RESULTS ~= true then
-        for _, entry in ipairs(rankedMatches or {}) do
-            local item = entry ~= nil and entry.sourceItem or nil
-            if item ~= nil and usedFinalItems[item] ~= true then
-                usedFinalItems[item] = true
-                table.insert(finalResultItems, item)
-            end
+    for _, entry in ipairs(rankedMatches or {}) do
+        local item = entry ~= nil and entry.sourceItem or nil
+        if item ~= nil and usedFinalItems[item] ~= true then
+            usedFinalItems[item] = true
+            table.insert(finalResultItems, item)
         end
-    else
-        tpLog("groundResultDisplaySuppressed=true rankedGroundMatches=" .. tostring(#(rankedMatches or {})))
     end
-
 
     local cappedFinalResultItems = {}
     for index, item in ipairs(finalResultItems or {}) do
@@ -6578,10 +4256,6 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
     end
     finalResultItems = cappedFinalResultItems
 
-    if tpIsDebugModeEnabled() == true then
-        tpLog("pipetteMixedResults objectItems=" .. tostring(#(objectResultItems or {})) .. " treeItems=" .. tostring(#(treeResultItems or {})) .. " foliageItems=" .. tostring(#(layerMenuItems or {})) .. " groundItems=" .. tostring(#(rankedMatches or {})) .. " finalItems=" .. tostring(#(finalResultItems or {})))
-    end
-
     self:tpDecoratePipetteResultNames(finalResultItems)
     self.tpResultItems = finalResultItems
 
@@ -6589,18 +4263,11 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
         self:tpRefreshPipetteResultItems(screen)
         if #finalResultItems > 0 then
             self:tpTryPreselectFirstPipetteResult(screen)
-            if TP_HEAVY_DIAGNOSTICS == true then
-                self:tpLogConstructionBrushRuntime(screen, "afterPipetteResultPreselect")
-            end
         elseif screen.itemList ~= nil then
             if screen.itemList.setSelectedIndex ~= nil then
-                pcall(function()
-                    screen.itemList:setSelectedIndex(0)
-                end)
+                screen.itemList:setSelectedIndex(0)
             else
-                pcall(function()
-                    screen.itemList.selectedIndex = 0
-                end)
+                screen.itemList.selectedIndex = 0
             end
         end
         self:tpUpdatePipettePanelVisuals(screen)
@@ -6614,10 +4281,8 @@ function MapObjectFinder:pickTextureAtCurrentMousePosition()
         end
     end
 
-
     self.nextArmedStatusRefreshAt = 0
 end
-
 
 local function tpTryGetGuiShowDialogSource()
     if g_gui == nil then
@@ -6692,330 +4357,4 @@ function MapObjectFinder:tpClearExpiredObjectInfoDialogSuppression()
     end
 end
 
-
 addModEventListener(MapObjectFinder)
-
--- ============================================================
--- LEGACY / UNGENUTZT
--- Die folgenden Funktionen werden aktuell nirgends im Mod
--- aufgerufen (weder direkt noch über die Engine-Callback-
--- Konvention). Sie wurden hierher verschoben statt gelöscht,
--- um den aktiven Code oben übersichtlich zu halten. Bei Bedarf
--- einfach wieder verwenden bzw. zurückverschieben.
--- ============================================================
-
-local TP_DEBUG_SUMMARY_PREFIXES = {
-    "treePick descs=",
-    "treePick placeableProbe",
-    "treePick placeableMatchAccepted",
-    "treePick noSafePlaceableMatch",
-    "treePick collectError=",
-    "pipetteMixedResults",
-    "foliageResultCandidates=",
-    "foliageResultCandidate index=",
-    "groundResultDisplaySuppressed=",
-    "rankSummary",
-    "treeDiag scanError=",
-    "treeDiag scan center=",
-    "treeDiag hit index=",
-    "treeDiag moreHits=",
-    "treeDiag descError",
-    "treeDiag skipped",
-    "treeDiagError=",
-    "staticMapObjectHitSuppressed",
-    "staticMapObjectHierarchy",
-}
-
-local function tpShouldPrintDebugSummary(message)
-    for _, prefix in ipairs(TP_DEBUG_SUMMARY_PREFIXES) do
-        if string.sub(message, 1, string.len(prefix)) == prefix then
-            return true
-        end
-    end
-
-    return false
-end
-
-function MapObjectFinder:tpSetPipettePanelStatus(text)
-    self.tpPipettePanelStatusText = tostring(text or "")
-    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
-end
-
-function MapObjectFinder:tpClearPipettePanelStatus()
-    self.tpPipettePanelStatusText = ""
-    self:tpUpdatePipettePanelVisuals(self:tpResolveConstructionLogicScreen())
-end
-
-function MapObjectFinder:tpGetCurrentPipetteSelectedItem(screen)
-    if screen == nil or screen.itemList == nil or not self:tpIsPipetteResultTabActive(screen) then
-        return nil, nil
-    end
-
-    local categoryIndex, tabIndex = self:tpFindPipetteScreenIndices(screen)
-    if categoryIndex == nil or tabIndex == nil or type(screen.items) ~= "table" then
-        return nil, nil
-    end
-
-    local list = screen.items[categoryIndex] ~= nil and screen.items[categoryIndex][tabIndex] or nil
-    if type(list) ~= "table" then
-        return nil, nil
-    end
-
-    local selectedIndex = tonumber(screen.itemList.selectedIndex or screen.itemList.selectedItemIndex or screen.selectedIndex or 0)
-    if selectedIndex == nil or selectedIndex <= 0 then
-        return nil, nil
-    end
-
-    return list[selectedIndex], selectedIndex
-end
-
-function MapObjectFinder:tpTryPickPlaceableAtCurrentRaycast()
-    local object, objectNodeId = self:tpResolveNodeObjectFromRaycastHit()
-    if object == nil then
-        return false
-    end
-
-    local storeItem, xmlFilename = self:tpResolveStoreItemFromPlaceableObject(object)
-    if storeItem == nil then
-        return false
-    end
-
-    local screen = self:tpResolveConstructionLogicScreen()
-    local displayItem, displayResolveMode = self:tpFindConstructionDisplayItemForStoreItem(screen, storeItem, xmlFilename)
-
-    if displayItem == nil then
-        local storeName = tostring(storeItem.name or storeItem.customEnvironment or storeItem.xmlFilename or "Object")
-        self.tpResultItems = {}
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-
-        tpShowMessage(string.format(tpText("TP_msg_objectNotReady", "Not buildable: %s"), storeName))
-        return true
-    end
-
-    self.tpResultItems = { displayItem }
-
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-        self:tpTryPreselectFirstPipetteResult(screen)
-    end
-
-    local displayStoreItem = type(displayItem.storeItem) == "table" and displayItem.storeItem or storeItem
-    local storeName = tostring(
-        displayItem.name
-        or (displayStoreItem ~= nil and displayStoreItem.name)
-        or storeItem.name
-        or storeItem.customEnvironment
-        or storeItem.xmlFilename
-        or "Object"
-    )
-
-    tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), storeName))
-
-    return true
-end
-
-function MapObjectFinder:tpStoreResultMatchesForResultTab(mergedMatches)
-    self:tpRestorePipetteDecoratedNames()
-    local resultItems = {}
-
-    for _, entry in ipairs(mergedMatches or {}) do
-        if entry.sourceItem ~= nil then
-            table.insert(resultItems, entry.sourceItem)
-        end
-    end
-
-    self.tpResultItems = resultItems
-
-    local screen = self:tpResolveConstructionLogicScreen()
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-    end
-
-    return #resultItems
-end
-
-function MapObjectFinder:tpFindDebugRasterBoundary(planeId, x, y, z, dx, dz, maxDistance, stepSize)
-    local centerValue = self:tpSampleDebugDensity(planeId, x, y, z)
-    if centerValue == nil then
-        return nil
-    end
-
-    maxDistance = maxDistance or 2.0
-    stepSize = stepSize or 0.025
-
-    local lastSame = 0
-    local firstDifferent = nil
-    local distance = stepSize
-    while distance <= maxDistance do
-        local value = self:tpSampleDebugDensity(planeId, x + (dx * distance), y, z + (dz * distance))
-        if value == nil then
-            break
-        end
-        if value ~= centerValue then
-            firstDifferent = distance
-            break
-        end
-        lastSame = distance
-        distance = distance + stepSize
-    end
-
-    if firstDifferent == nil then
-        return nil
-    end
-
-    local low = lastSame
-    local high = firstDifferent
-    for _ = 1, 8 do
-        local mid = (low + high) * 0.5
-        local value = self:tpSampleDebugDensity(planeId, x + (dx * mid), y, z + (dz * mid))
-        if value == centerValue then
-            low = mid
-        else
-            high = mid
-        end
-    end
-
-    return high
-end
-
-local function tpTreeTextMatches(haystack, needle)
-    haystack = tpNormalizeTreeComparable(haystack)
-    needle = tpNormalizeTreeComparable(needle)
-
-    if haystack == nil or needle == nil or string.len(haystack) < 4 or string.len(needle) < 4 then
-        return false
-    end
-
-    return haystack == needle
-end
-
-function MapObjectFinder:tpTreeItemTextMatchesDesc(item, desc)
-    if type(item) ~= "table" or type(desc) ~= "table" then
-        return false
-    end
-
-    local storeItem = type(item.storeItem) == "table" and item.storeItem or nil
-    local brush = storeItem ~= nil and type(storeItem.brush) == "table" and storeItem.brush or nil
-
-    local descName = desc.name
-    local descTitle = desc.title
-    local descIndex = desc.index
-
-    local fields = {
-        item.name,
-        item.title,
-        item.xmlFilename,
-        item.filename,
-        item.configFileName,
-        item.imageFilename,
-        storeItem ~= nil and storeItem.name or nil,
-        storeItem ~= nil and storeItem.title or nil,
-        storeItem ~= nil and storeItem.xmlFilename or nil,
-        storeItem ~= nil and storeItem.filename or nil,
-        storeItem ~= nil and storeItem.configFileName or nil,
-        storeItem ~= nil and storeItem.imageFilename or nil,
-        storeItem ~= nil and storeItem.species or nil,
-        storeItem ~= nil and storeItem.customEnvironment or nil,
-        brush ~= nil and brush.type or nil,
-        brush ~= nil and brush.category or nil,
-        brush ~= nil and brush.tab or nil
-    }
-
-    if type(item.brushParameters) == "table" then
-        for _, value in ipairs(item.brushParameters) do
-            table.insert(fields, value)
-        end
-    end
-
-    if brush ~= nil and type(brush.parameters) == "table" then
-        for _, value in ipairs(brush.parameters) do
-            table.insert(fields, value)
-        end
-    end
-
-    for _, field in ipairs(fields) do
-        if tpTreeTextMatches(field, descName) == true or tpTreeTextMatches(field, descTitle) == true then
-            return true
-        end
-    end
-
-    return false
-end
-
-function MapObjectFinder:tpFindTreeCatalogueCandidates(screen, treeInfo)
-    local candidates = {}
-    local desc = treeInfo ~= nil and treeInfo.desc or nil
-    if screen == nil or type(screen.items) ~= "table" or type(desc) ~= "table" then
-        return candidates
-    end
-
-    for categoryIndex, categoryItems in pairs(screen.items) do
-        if type(categoryItems) == "table" then
-            for tabIndex, tabItems in pairs(categoryItems) do
-                if type(tabItems) == "table" then
-                    for itemIndex, item in ipairs(tabItems) do
-                        if type(item) == "table" then
-                            local evidence = tpTreeCollectComparableEvidence(item, desc, treeInfo)
-                            local descHits = #evidence.desc
-                            local treeHits = #evidence.tree
-
-                            if treeHits > 0 then
-                                table.insert(candidates, {
-                                    item = item,
-                                    categoryIndex = categoryIndex,
-                                    tabIndex = tabIndex,
-                                    itemIndex = itemIndex,
-                                    descHits = descHits,
-                                    treeHits = treeHits,
-                                    descEvidence = table.concat(evidence.desc, " ; "),
-                                    treeEvidence = table.concat(evidence.tree, " ; ")
-                                })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    table.sort(candidates, function(a, b)
-        local aScore = (tonumber(a.descHits) or 0) * 100 + (tonumber(a.treeHits) or 0)
-        local bScore = (tonumber(b.descHits) or 0) * 100 + (tonumber(b.treeHits) or 0)
-        if aScore == bScore then
-            return tostring((a.item or {}).name or "") < tostring((b.item or {}).name or "")
-        end
-        return aScore > bScore
-    end)
-
-    return candidates
-end
-
-function MapObjectFinder:tpTryPickTreeAtWorldPosition(screen, x, y, z)
-    local capped = self:tpCollectTreeDisplayItemsAtWorldPosition(screen, x, y, z)
-    if #capped == 0 then
-        return false
-    end
-
-    self:tpDecoratePipetteResultNames(capped)
-    self.tpResultItems = capped
-
-    if screen ~= nil then
-        self:tpRefreshPipetteResultItems(screen)
-        self:tpUpdatePipettePanelVisuals(screen)
-        self:tpTryPreselectFirstPipetteResult(screen)
-    end
-
-    local firstItem = capped[1]
-    local firstStoreItem = type(firstItem) == "table" and type(firstItem.storeItem) == "table" and firstItem.storeItem or nil
-    local displayName = tostring(
-        (type(firstItem) == "table" and (firstItem.tpPipetteMenuOriginalName or firstItem.name or firstItem.title))
-        or (firstStoreItem ~= nil and firstStoreItem.name)
-        or "Tree"
-    )
-    tpShowMessage(string.format(tpText("TP_msg_objectDetected", "Selected: %s"), displayName))
-
-    return true
-end

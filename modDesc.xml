@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
-<modDesc descVersion="111">
+<modDesc descVersion="113">
     <author>Nalathan</author>
-    <version>2.1.0.0</version>
+    <version>2.2.0.0</version>
 
     <title>
         <en>Terrain Texture And Object Picker</en>
@@ -31,6 +31,10 @@ Credits:
 Dank an PeterPwn247 für „All Decorative Foliage” und an modelleicher (Farming Agency) für „All The Ground Textures Ingame”. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
 
 GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
+
+Changelog 2.2.0.0:
+- Fehlermeldungen im Log beim Pipettieren behoben, die auf Karten mit fehlerhaft eingetragenen Foliage-Ebenen auftreten konnten.
+- Interne Überarbeitung: nicht mehr benötigter Diagnose-Code entfernt und Fehlerbehandlung an aktuelle GIANTS-Vorgaben angepasst.
 
 Changelog 2.1.0.0:
 - Neuer Reiter „Suche“ im Baumenü: durchsucht alle Kategorien nach Stichworten, unabhängig von der Reihenfolge, sortiert nach Relevanz.
@@ -83,6 +87,10 @@ Thanks to PeterPwn247 for “All Decorative Foliage” and to modelleicher (Farm
 
 GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
 
+Changelog 2.2.0.0:
+- Fixed log error messages while picking that could occur on maps with incorrectly registered foliage layers.
+- Internal rework: removed obsolete diagnostic code and updated error handling to current GIANTS requirements.
+
 Changelog 2.1.0.0:
 - New “Search” tab in the construction menu: searches all categories by keyword, order-independent, sorted by relevance.
 - First connected object groups recognized for search: trees and husbandry are found even without a literal name match.
@@ -133,6 +141,10 @@ Crédits :
 Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à comprendre comment rendre le contenu des cartes disponible dans le menu de construction.
 
 GitHub : https://github.com/Nalathan01/FS25_TexturePipette/issues
+
+Changelog 2.2.0.0 :
+- Correction de messages d'erreur dans le journal lors du prélèvement, pouvant survenir sur des cartes avec des couches de végétation mal déclarées.
+- Refonte interne : suppression du code de diagnostic obsolète et adaptation de la gestion des erreurs aux exigences actuelles de GIANTS.
 
 Changelog 2.1.0.0 :
 - Nouvel onglet « Recherche » dans le menu de construction : recherche dans toutes les catégories par mot-clé, ordre indifférent, tri par pertinence.

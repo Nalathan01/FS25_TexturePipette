@@ -80,10 +80,7 @@ local function tpMfRegisterPaintableFromCache(foliageSystem, settingsDirectory)
         if layerName ~= nil and layerName ~= "" and startStateChannel ~= nil and numStateChannels ~= nil then
             local exists = nil
             if type(foliageSystem.getFoliagePaintByName) == "function" then
-                local ok, result = pcall(foliageSystem.getFoliagePaintByName, foliageSystem, layerName)
-                if ok == true then
-                    exists = result
-                end
+                exists = foliageSystem:getFoliagePaintByName(layerName)
             end
 
             if exists == nil then
@@ -214,31 +211,22 @@ local function tpMfGenerateFromMapXml(foliageSystem, xmlFile, missionInfo, baseD
         link(getRootNode(), i3dContainer)
         setTranslation(i3dContainer, -100, -100, -100)
 
-        local okCamera = pcall(function()
-            cameraBaseNode = createTransformGroup("MapObjectFinderStoreIconCameraBase")
-            camera = createCamera("MapObjectFinderStoreIconCamera", math.rad(60), 0.1, 1000)
-            link(cameraBaseNode, camera)
-            link(i3dContainer, cameraBaseNode)
-            setRotation(cameraBaseNode, math.rad(-15), math.rad(45), 0)
+        cameraBaseNode = createTransformGroup("MapObjectFinderStoreIconCameraBase")
+        camera = createCamera("MapObjectFinderStoreIconCamera", math.rad(60), 0.1, 1000)
+        link(cameraBaseNode, camera)
+        link(i3dContainer, cameraBaseNode)
+        setRotation(cameraBaseNode, math.rad(-15), math.rad(45), 0)
 
-            if g_cameraManager ~= nil and g_cameraManager.addCamera ~= nil and g_cameraManager.setActiveCamera ~= nil then
-                g_cameraManager:addCamera(camera, nil, false)
-                g_cameraManager:setActiveCamera(camera)
-                canRenderIcons = true
-            end
-
-            light = createLightSource("MapObjectFinderStoreIconLight", LightType.DIRECTIONAL, 0.75, 0.75, 0.75, 100)
-            setLightShadowMap(light, true, 512)
-            link(i3dContainer, light)
-            setRotation(light, math.rad(-95), math.rad(70), math.rad(-5))
-        end)
-
-        if okCamera ~= true then
-            canRenderIcons = false
-            if light ~= nil then delete(light); light = nil end
-            if camera ~= nil then delete(camera); camera = nil end
-            if cameraBaseNode ~= nil then delete(cameraBaseNode); cameraBaseNode = nil end
+        if g_cameraManager ~= nil and g_cameraManager.addCamera ~= nil and g_cameraManager.setActiveCamera ~= nil then
+            g_cameraManager:addCamera(camera, nil, false)
+            g_cameraManager:setActiveCamera(camera)
+            canRenderIcons = true
         end
+
+        light = createLightSource("MapObjectFinderStoreIconLight", LightType.DIRECTIONAL, 0.75, 0.75, 0.75, 100)
+        setLightShadowMap(light, true, 512)
+        link(i3dContainer, light)
+        setRotation(light, math.rad(-95), math.rad(70), math.rad(-5))
     end
 
     mapFile:iterate("i3D.Scene.TerrainTransformGroup.Layers.FoliageSystem.FoliageMultiLayer", function(_, layerGroupKey)
@@ -278,9 +266,9 @@ local function tpMfGenerateFromMapXml(foliageSystem, xmlFile, missionInfo, baseD
             end
 
             local i3dNode = nil
-            if storeI3dFile ~= nil then
-                local ok, result = pcall(loadI3DFile, storeI3dFile, false, false, false)
-                if ok == true and result ~= nil and result ~= 0 then
+            if storeI3dFile ~= nil and fileExists(storeI3dFile) then
+                local result = loadI3DFile(storeI3dFile, false, false, false)
+                if result ~= nil and result ~= 0 then
                     i3dNode = result
                 end
             end
@@ -326,11 +314,9 @@ local function tpMfGenerateFromMapXml(foliageSystem, xmlFile, missionInfo, baseD
                     setTranslation(cameraBaseNode, posX, posY + radius * 0.1, posZ)
                     setTranslation(camera, 0, 0, radius * 2)
 
-                    local okRender, rendered = pcall(function()
-                        return renderScreenshot(settingsDirectory .. storeIcon, 512, 512, 1, "raw_alpha", 2, 0, 0, 0, 0, 0, 15, false)
-                    end)
+                    local rendered = renderScreenshot(settingsDirectory .. storeIcon, 512, 512, 1, "raw_alpha", 2, 0, 0, 0, 0, 0, 15, false)
 
-                    if okRender == true and rendered == true then
+                    if rendered == true then
                         imageFile = storeIcon
                     else
                         imageFile = TP_MF_MOD_DIR .. "data/icon_TexturePipette_category.dds"
@@ -375,14 +361,10 @@ local function tpMfGenerateFromMapXml(foliageSystem, xmlFile, missionInfo, baseD
     if camera ~= nil then
         if g_cameraManager ~= nil then
             if g_cameraManager.setActiveCamera ~= nil and g_cameraManager.defaultCameraNode ~= nil then
-                pcall(function()
-                    g_cameraManager:setActiveCamera(g_cameraManager.defaultCameraNode)
-                end)
+                g_cameraManager:setActiveCamera(g_cameraManager.defaultCameraNode)
             end
             if g_cameraManager.removeCamera ~= nil then
-                pcall(function()
-                    g_cameraManager:removeCamera(camera)
-                end)
+                g_cameraManager:removeCamera(camera)
             end
         end
         delete(camera)
@@ -401,17 +383,11 @@ local function tpMfGenerateFromMapXml(foliageSystem, xmlFile, missionInfo, baseD
     local registered = tpMfRegisterPaintableFromCache(foliageSystem, settingsDirectory)
 
     local modInfo = g_modManager ~= nil and g_modManager:getModByName(TP_MF_MOD_NAME) or nil
-    local loaded = 0
     if g_storeManager ~= nil and g_storeManager.loadItem ~= nil and Files ~= nil and Files.getFilesRecursive ~= nil then
         local storeFiles = Files.getFilesRecursive(settingsDirectory)
         for _, item in pairs(storeFiles or {}) do
             if item ~= nil and item.isDirectory ~= true and tostring(item.filename or ""):contains("^paintable_.+%.xml$") then
-                local ok = pcall(function()
-                    g_storeManager:loadItem(item.filename, settingsDirectory, TP_MF_MOD_NAME, true, false, modInfo ~= nil and modInfo.title or "Terrain Texture And Object Picker")
-                end)
-                if ok == true then
-                    loaded = loaded + 1
-                end
+                g_storeManager:loadItem(item.filename, settingsDirectory, TP_MF_MOD_NAME, true, false, modInfo ~= nil and modInfo.title or "Terrain Texture And Object Picker")
             end
         end
     end
@@ -421,27 +397,6 @@ end
 
 if FoliageSystem ~= nil and FoliageSystem.loadMapData ~= nil then
     FoliageSystem.loadMapData = Utils.appendedFunction(FoliageSystem.loadMapData, function(self, xmlFile, missionInfo, baseDirectory)
-        local ok, err = pcall(function()
-            tpMfGenerateFromMapXml(self, xmlFile, missionInfo, baseDirectory)
-        end)
-        if ok ~= true then
-            tpMfLog("mapFoliageMenuError " .. tostring(err))
-        end
+        tpMfGenerateFromMapXml(self, xmlFile, missionInfo, baseDirectory)
     end)
-end
-
--- ============================================================
--- LEGACY / UNGENUTZT
--- Diese Funktion wird aktuell nirgends aufgerufen. Sie wurde
--- hierher verschoben (nicht gelöscht), um den aktiven Code oben
--- übersichtlich zu halten. Bei Bedarf einfach wieder verwenden.
--- ============================================================
-
-local function tpMfTitleCase(value)
-    value = tostring(value or "")
-    value = value:gsub("[_%-%s]+", " ")
-    value = value:gsub("(%a)([%w_']*)", function(a, b)
-        return string.upper(a) .. string.lower(b or "")
-    end)
-    return value
 end
