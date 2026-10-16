@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="113">
     <author>Nalathan</author>
-    <version>2.2.0.0</version>
+    <version>2.3.0.0</version>
 
     <title>
         <en>Terrain Texture And Object Picker</en>
@@ -31,6 +31,12 @@ Credits:
 Dank an PeterPwn247 für „All Decorative Foliage” und an modelleicher (Farming Agency) für „All The Ground Textures Ingame”. Beide Mods haben bei der Einordnung geholfen, wie Karteninhalte sinnvoll im Baumenü verfügbar gemacht werden können.
 
 GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
+
+Shift + Mausrad:
+Im Baumenü lässt sich mit gedrückter Shift-Taste und dem Mausrad die Pinselgröße beim Malen umschalten, die Wuchsstufe von Bäumen wählen und bei Büschen mit mehreren Größen (z. B. klein, mittel, groß) die Größe wechseln. Ohne Shift zoomt das Mausrad wie gewohnt.
+
+Changelog 2.3.0.0:
+- Shift + Mausrad im Baumenü: Pinselgröße, Wuchsstufe von Bäumen und Buschgröße umschalten. An der kleinsten und größten Stufe wird angehalten.
 
 Changelog 2.2.0.0:
 - Fehlermeldungen im Log beim Pipettieren behoben, die auf Karten mit fehlerhaft eingetragenen Foliage-Ebenen auftreten konnten.
@@ -87,6 +93,12 @@ Thanks to PeterPwn247 for “All Decorative Foliage” and to modelleicher (Farm
 
 GitHub: https://github.com/Nalathan01/FS25_TexturePipette/issues
 
+Shift + mouse wheel:
+In the construction menu, holding Shift while using the mouse wheel switches the brush size when painting, selects the growth stage of trees and changes the size of bushes that come in several sizes (e.g. small, medium, big). Without Shift the mouse wheel zooms as usual.
+
+Changelog 2.3.0.0:
+- Shift + mouse wheel in the construction menu: switch brush size, tree growth stage and bush size. Stops at the smallest and largest step.
+
 Changelog 2.2.0.0:
 - Fixed log error messages while picking that could occur on maps with incorrectly registered foliage layers.
 - Internal rework: removed obsolete diagnostic code and updated error handling to current GIANTS requirements.
@@ -141,6 +153,12 @@ Crédits :
 Merci à PeterPwn247 pour « All Decorative Foliage » et à modelleicher (Farming Agency) pour « All The Ground Textures Ingame ». Ces deux mods ont aidé à comprendre comment rendre le contenu des cartes disponible dans le menu de construction.
 
 GitHub : https://github.com/Nalathan01/FS25_TexturePipette/issues
+
+Maj + molette de la souris :
+Dans le menu de construction, maintenir la touche Maj en utilisant la molette permet de changer la taille du pinceau pour peindre, de choisir le stade de croissance des arbres et de changer la taille des buissons disponibles en plusieurs tailles (par ex. petit, moyen, grand). Sans Maj, la molette zoome comme d'habitude.
+
+Changelog 2.3.0.0 :
+- Maj + molette dans le menu de construction : changer la taille du pinceau, le stade de croissance des arbres et la taille des buissons. S'arrête au plus petit et au plus grand niveau.
 
 Changelog 2.2.0.0 :
 - Correction de messages d'erreur dans le journal lors du prélèvement, pouvant survenir sur des cartes avec des couches de végétation mal déclarées.
@@ -212,5 +230,6 @@ Changelog 1.1.0.0 :
         <sourceFile filename="scripts/MapObjectFinderMapFoliageStore.lua" />
         <sourceFile filename="scripts/MapObjectFinder.lua" />
         <sourceFile filename="scripts/MapObjectFinderGroundTextures.lua" />
+        <sourceFile filename="scripts/MapObjectFinderBrushWheel.lua" />
     </extraSourceFiles>
 </modDesc>
