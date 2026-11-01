@@ -10,6 +10,8 @@ Click on a texture, plant or object in the world and get it selected in the cons
 - Map foliage becomes paintable from the construction menu wherever that's possible
 - Optional free painting mode while the pipette is active
 - Can be reactivated any time, the active brush resets by itself
+- "Search" tab next to the pipette: search the whole construction menu by keyword, words in any order, sorted by relevance
+- Shift + mouse wheel in the construction menu: switch brush size, tree growth stage and bush size (for bushes that come in several sizes), stops at the smallest and largest step
 
 ## How to use
 
